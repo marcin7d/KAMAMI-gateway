@@ -1,0 +1,4 @@
+dependencies:
+  espressif/mosquitto: "^2.0.20~7"
+  espressif/mqtt: "*"
+  espressif/cjson: "*"

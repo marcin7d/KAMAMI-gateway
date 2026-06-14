@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KAMAMI Gateway</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1216;
+      --band: #151a20;
+      --panel: #1c232a;
+      --panel-2: #202931;
+      --line: #34404a;
+      --line-soft: #28323b;
+      --text: #edf3f7;
+      --muted: #93a3af;
+      --accent: #46c2a8;
+      --accent-2: #4aa3df;
+      --warn: #e5b84b;
+      --bad: #e45b69;
+      --ok: #48d597;
+      --shadow: 0 14px 40px rgba(0,0,0,.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      min-height: 36px;
+      padding: 0 12px;
+      color: #06100e;
+      background: var(--accent);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.secondary { background: #26323b; color: var(--text); border-color: var(--line); }
+    button.danger { background: var(--bad); color: #fff; }
+    button.icon { width: 38px; padding: 0; color: var(--text); background: #26323b; border-color: var(--line); }
+    input, select {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #10161c;
+      color: var(--text);
+      padding: 7px 9px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent-2); box-shadow: 0 0 0 2px rgba(74,163,223,.18); }
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(15,18,22,.94);
+      border-bottom: 1px solid var(--line-soft);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #06100e;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+    h1 { margin: 0; font-size: 18px; font-weight: 750; }
+    .sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    .wrap {
+      width: min(1260px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      gap: 16px;
+    }
+    aside {
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      display: grid;
+      gap: 12px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .status-list { display: grid; gap: 1px; overflow: hidden; }
+    .status-row {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.015);
+      min-width: 0;
+    }
+    .status-row span { color: var(--muted); font-size: 12px; }
+    .status-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 7px;
+      background: var(--muted);
+      box-shadow: 0 0 0 3px rgba(147,163,175,.12);
+    }
+    .dot.ok { background: var(--ok); box-shadow-color: rgba(72,213,151,.14); }
+    .dot.warn { background: var(--warn); box-shadow-color: rgba(229,184,75,.14); }
+    .dot.bad { background: var(--bad); box-shadow-color: rgba(228,91,105,.14); }
+    .tabs {
+      display: grid;
+      gap: 6px;
+      padding: 8px;
+    }
+    .tab {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      color: var(--muted);
+      border-color: transparent;
+      text-align: left;
+      font-weight: 650;
+    }
+    .tab.active { background: #26323b; color: var(--text); border-color: var(--line); }
+    main { display: grid; gap: 16px; min-width: 0; }
+    .page { display: none; gap: 16px; }
+    .page.active { display: grid; }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    h2 { margin: 0; font-size: 15px; }
+    .section-body { padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+    .field { grid-column: span 4; min-width: 0; }
+    .field.wide { grid-column: span 6; }
+    .field.full { grid-column: 1 / -1; }
+    .label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .metric {
+      padding: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      background: var(--panel-2);
+      min-width: 0;
+    }
+    .metric .label { margin: 0 0 6px; }
+    .metric b { font-size: 20px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rule-head, .rule {
+      display: grid;
+      grid-template-columns: 70px 84px minmax(210px, 1.3fr) minmax(120px, .6fr) 110px 124px;
+      gap: 8px;
+      align-items: center;
+    }
+    .rule-head {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .rule {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .rule:last-child { border-bottom: 0; }
+    .rule-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .modbus-head, .modbus-rule {
+      display: grid;
+      grid-template-columns: 70px 130px minmax(180px, 1fr) minmax(140px, .8fr) 76px 72px 86px 92px 90px 44px;
+      gap: 8px;
+      align-items: center;
+    }
+    .modbus-head {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .modbus-rule {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .modbus-rule:last-child { border-bottom: 0; }
+    .sensor-rule {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+    .sensor-rule {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .sensor-rule label { min-width: 0; }
+    .sensor-rule .sensor-name { grid-column: span 2; }
+    .sensor-rule .sensor-topic { grid-column: span 3; }
+    .sensor-rule .sensor-wide { grid-column: span 2; }
+    .sensor-rule:last-child { border-bottom: 0; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .hidden { display: none !important; }
+    .notice {
+      display: none;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(229,184,75,.38);
+      border-radius: 8px;
+      color: #f2d27a;
+      background: rgba(229,184,75,.08);
+    }
+    .notice.show { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .explorer {
+      display: grid;
+      gap: 8px;
+      max-height: 540px;
+      overflow: auto;
+    }
+    .msg {
+      display: grid;
+      grid-template-columns: 72px minmax(120px, .6fr) minmax(220px, 1fr) minmax(180px, 1fr) 78px;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      background: var(--panel-2);
+      min-width: 0;
+    }
+    .msg span, .msg code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .msg code {
+      color: #d7efe9;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #26323b;
+      color: var(--muted);
+      font-size: 12px;
+      border: 1px solid var(--line);
+    }
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      min-width: 220px;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #10161c;
+      box-shadow: var(--shadow);
+      transform: translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: .18s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 980px) {
+      .wrap { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .tabs { grid-template-columns: repeat(4, 1fr); }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field, .field.wide { grid-column: span 6; }
+      .rule-head { display: none; }
+      .rule { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 10px; background: var(--panel-2); }
+      .rule .topic-cell, .rule .rule-actions { grid-column: 1 / -1; }
+      .rule-actions { justify-content: flex-start; }
+      .modbus-head { display: none; }
+      .modbus-rule { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 10px; background: var(--panel-2); }
+      .modbus-rule .mb-topic, .modbus-rule .mb-host { grid-column: 1 / -1; }
+      .sensor-rule { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 10px; background: var(--panel-2); }
+      .sensor-rule .sensor-topic, .sensor-rule .sensor-name, .sensor-rule .sensor-wide { grid-column: 1 / -1; }
+      .msg { grid-template-columns: 72px minmax(0, 1fr); }
+      .msg .topic, .msg .payload { grid-column: 1 / -1; }
+    }
+    @media (max-width: 620px) {
+      .topbar { grid-template-columns: 1fr; }
+      .actions { justify-content: stretch; }
+      .actions button { flex: 1; }
+      .wrap { padding: 10px; }
+      .tabs { grid-template-columns: 1fr; }
+      .field, .field.wide { grid-column: 1 / -1; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .rule { grid-template-columns: 1fr; }
+      .modbus-rule { grid-template-columns: 1fr; }
+      .sensor-rule { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">KG</div>
+        <div>
+          <h1>KAMAMI Universal Gateway</h1>
+          <div class="sub" id="fw">ladowanie...</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="secondary" id="refreshBtn" title="Odswiez">R</button>
+        <button class="secondary hidden" id="restartBtn">Restart</button>
+        <button id="saveBtn">Zapisz</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <aside>
+        <section class="card status-list" id="sideStatus"></section>
+        <nav class="card tabs">
+          <button class="tab active" data-page="overview">Status <span>&gt;</span></button>
+          <button class="tab" data-page="network">Siec <span>&gt;</span></button>
+          <button class="tab" data-page="mqtt">MQTT <span>&gt;</span></button>
+          <button class="tab" data-page="explorer">Explorer <span>&gt;</span></button>
+          <button class="tab" data-page="modbus">Modbus TCP <span>&gt;</span></button>
+          <button class="tab" data-page="sensors">Czujniki <span>&gt;</span></button>
+          <button class="tab" data-page="gpio">GPIO <span>&gt;</span></button>
+        </nav>
+      </aside>
+
+      <main>
+        <section class="page active" id="overview">
+          <div class="card">
+            <div class="section-head"><h2>Status runtime</h2><div class="toolbar"><button class="secondary" onclick="loadAll()">Odswiez</button></div></div>
+            <div class="section-body"><div class="metric-grid" id="metrics"></div></div>
+          </div>
+          <div class="card">
+            <div class="section-head"><h2>Czujniki</h2><div class="toolbar"><button class="secondary" onclick="loadSensors()">Odswiez</button></div></div>
+            <div class="section-body"><div class="metric-grid" id="sensorOverview"></div></div>
+          </div>
+        </section>
+
+        <section class="page" id="network">
+          <div class="card">
+            <div class="section-head"><h2>Interfejsy sieciowe</h2></div>
+            <div class="section-body">
+              <div class="notice" id="restartNotice"><span>Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.</span><button class="secondary" onclick="restartDevice()">Restart</button></div>
+              <div class="grid">
+              <label class="field wide"><span class="label">Host</span><input id="host"></label>
+              <label class="field wide"><span class="label">Tryb</span><select id="net_mode"><option value="0">Ethernet</option><option value="1">WiFi STA</option><option value="2">WiFi AP</option><option value="3">Ethernet + AP</option></select></label>
+              <label class="field"><span class="label">DHCP</span><select id="dhcp"><option value="1">Tak</option><option value="0">Statyczny</option></select></label>
+              <label class="field"><span class="label">IP</span><input id="ip"></label>
+              <label class="field"><span class="label">Brama</span><input id="gateway"></label>
+              <label class="field"><span class="label">Maska</span><input id="subnet"></label>
+              <label class="field"><span class="label">DNS</span><input id="dns"></label>
+              <label class="field wide"><span class="label">WiFi STA SSID</span><input id="sta_ssid"></label>
+              <label class="field wide"><span class="label">WiFi STA haslo</span><input id="sta_pass" type="password"></label>
+              <label class="field wide"><span class="label">AP SSID</span><input id="ap_ssid"></label>
+              <label class="field wide"><span class="label">AP haslo</span><input id="ap_pass" type="password"></label>
+              <label class="field wide"><span class="label">ESP-NOW po WiFi</span><select id="espnow_enabled"><option value="0">Wylaczony</option><option value="1">Wlaczony</option></select></label>
+              <label class="field"><span class="label">Kanal ESP-NOW</span><input id="espnow_channel" type="number" min="1" max="13"></label>
+              <label class="field wide"><span class="label">Peer MAC</span><input id="espnow_peer" placeholder="FF:FF:FF:FF:FF:FF"></label>
+              <label class="field wide"><span class="label">Topic RX ESP-NOW</span><input id="espnow_rx_topic"></label>
+              <label class="field wide"><span class="label">Topic TX ESP-NOW</span><input id="espnow_tx_topic"></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="mqtt">
+          <div class="card">
+            <div class="section-head"><h2>MQTT</h2></div>
+            <div class="section-body grid">
+              <label class="field wide"><span class="label">Tryb</span><select id="mqtt_mode"><option value="0">Wylaczony</option><option value="1">Klient esp-mqtt</option><option value="2">Broker Espressif Mosquitto</option></select></label>
+              <label class="field client-mqtt"><span class="label">Adres brokera MQTT</span><input id="mqtt_host"></label>
+              <label class="field client-mqtt"><span class="label">Port brokera MQTT</span><input id="mqtt_port" type="number"></label>
+              <label class="field client-mqtt"><span class="label">Uzytkownik klienta</span><input id="mqtt_user"></label>
+              <label class="field client-mqtt"><span class="label">Haslo klienta</span><input id="mqtt_pass" type="password"></label>
+              <label class="field wide"><span class="label">Base topic</span><input id="base_topic"></label>
+              <label class="field broker-mqtt"><span class="label">Port lokalnego brokera</span><input id="broker_port" type="number" min="1" max="65535"></label>
+              <label class="field broker-mqtt"><span class="label">Login do lokalnego brokera</span><input id="broker_user"></label>
+              <label class="field broker-mqtt"><span class="label">Haslo do lokalnego brokera</span><input id="broker_pass" type="password"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="explorer">
+          <div class="card">
+            <div class="section-head">
+              <h2>MQTT Explorer</h2>
+              <div class="toolbar">
+                <button class="secondary" id="pauseExplorerBtn">Pauza</button>
+                <button class="secondary" onclick="loadMessages()">Odswiez</button>
+                <button class="danger" onclick="clearMessages()">Wyczysc</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="notice show" id="explorerNotice"><span>Pokazuje ostatnie publikacje odebrane przez lokalny broker Mosquitto.</span></div>
+              <div class="explorer" id="mqttMessages"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="modbus">
+          <div class="card">
+            <div class="section-head">
+              <h2>Mapowanie Modbus TCP</h2>
+              <div class="toolbar"><button class="secondary" onclick="addModbusRule()">Dodaj</button></div>
+            </div>
+            <div class="section-body">
+              <div class="modbus-head"><span>Aktywne</span><span>Kierunek</span><span>Topic</span><span>Host</span><span>Port</span><span>Unit</span><span>Rejestr</span><span>Poll ms</span><span>Ostatnio</span><span></span></div>
+              <div id="modbusRules"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="sensors">
+          <div class="card">
+            <div class="section-head">
+              <h2>Czujniki smarthome</h2>
+              <div class="toolbar"><button class="secondary" onclick="addSensorRule()">Dodaj</button></div>
+            </div>
+            <div class="section-body">
+              <div class="notice show"><span>DS18B20 i DHT uzywaja pola GPIO data. BME280/SHT3x uzywaja SDA/SCL oraz adresu I2C.</span></div>
+              <div id="sensorRules"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="gpio">
+          <div class="card">
+            <div class="section-head">
+              <h2>Mapowanie topicow na GPIO</h2>
+              <div class="toolbar"><button class="secondary" onclick="addRule()">Dodaj</button></div>
+            </div>
+            <div class="section-body">
+              <div class="rule-head"><span>Aktywne</span><span>GPIO</span><span>Topic SET</span><span>Nazwa</span><span>Logika</span><span></span></div>
+              <div id="rules"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ids = ['host','net_mode','dhcp','ip','gateway','subnet','dns','sta_ssid','sta_pass','ap_ssid','ap_pass','espnow_enabled','espnow_channel','espnow_peer','espnow_rx_topic','espnow_tx_topic','mqtt_mode','mqtt_host','mqtt_port','mqtt_user','mqtt_pass','base_topic','broker_port','broker_user','broker_pass'];
+    let cfg = { rules: [], modbus_tcp: [], sensors: [] };
+    let explorerPaused = false;
+    const safeSensorGpios = [13, 14, 16, 17, 32, 33];
+    const $ = id => document.getElementById(id);
+
+    function toast(text) {
+      const el = $('toast');
+      el.textContent = text;
+      el.classList.add('show');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+    }
+
+    function setField(id, value) {
+      const el = $(id);
+      if (el) el.value = value == null ? '' : value;
+    }
+
+    function bindTabs() {
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+          btn.classList.add('active');
+          $(btn.dataset.page).classList.add('active');
+        });
+      });
+    }
+
+    async function loadCfg() {
+      cfg = await (await fetch('/api/config')).json();
+      ids.forEach(id => setField(id, cfg[id]));
+      $('dhcp').value = cfg.dhcp ? '1' : '0';
+      $('espnow_enabled').value = cfg.espnow_enabled ? '1' : '0';
+      updateMqttVisibility();
+      renderRules();
+      renderModbusRules();
+      renderSensorRules();
+    }
+
+    function updateMqttVisibility() {
+      const mode = Number($('mqtt_mode').value);
+      document.querySelectorAll('.client-mqtt').forEach(el => el.classList.toggle('hidden', mode !== 1));
+      document.querySelectorAll('.broker-mqtt').forEach(el => el.classList.toggle('hidden', mode !== 2));
+    }
+
+    function statusDot(value) {
+      const text = String(value).toLowerCase();
+      if (text.includes('online') || text.includes('broker') || text.includes('ready')) return 'ok';
+      if (text.includes('off') || text.includes('offline')) return 'bad';
+      return 'warn';
+    }
+
+    async function loadStatus() {
+      const s = await (await fetch('/api/status')).json();
+      $('fw').textContent = `${s.fw} ${s.version}`;
+      const order = ['ip', 'eth', 'wifi', 'espnow', 'mqtt', 'uptime_s', 'free_heap'];
+      $('sideStatus').innerHTML = order.map(k => `<div class="status-row"><span>${k}</span><b><i class="dot ${statusDot(s[k])}"></i>${s[k]}</b></div>`).join('');
+      $('metrics').innerHTML = order.map(k => `<div class="metric"><span class="label">${k}</span><b>${s[k]}</b></div>`).join('');
+      $('restartBtn').classList.toggle('hidden', !s.restart_required);
+      $('restartNotice').classList.toggle('show', !!s.restart_required);
+    }
+
+    async function loadSensors() {
+      const data = await (await fetch('/api/sensors')).json();
+      const rows = (data.sensors || []).filter(s => s.enabled);
+      $('sensorOverview').innerHTML = rows.length ? rows.map(s => {
+        const values = [];
+        if (s.has_temp) values.push(`${Number(s.last_temp).toFixed(1)}${s.temperature_unit_label || 'C'}`);
+        if (s.has_hum) values.push(`${Number(s.last_hum).toFixed(0)}%`);
+        if (s.has_press) values.push(`${Number(s.last_press).toFixed(0)}${s.pressure_unit_label || 'hPa'}`);
+        return `<div class="metric"><span class="label">${s.name || 'Sensor'}</span><b>${values.length ? values.join(' / ') : '-'}</b><span class="label">${s.topic || ''}</span></div>`;
+      }).join('') : '<div class="metric"><span class="label">Brak aktywnych czujnikow</span><b>-</b></div>';
+    }
+
+    function renderRules() {
+      const el = $('rules');
+      el.innerHTML = '';
+      (cfg.rules || []).forEach((r, i) => {
+        const row = document.createElement('div');
+        row.className = 'rule';
+        row.innerHTML = `
+          <select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select>
+          <input data-i="${i}" data-k="pin" type="number" min="0" max="39">
+          <input class="topic-cell" data-i="${i}" data-k="topic">
+          <input data-i="${i}" data-k="name">
+          <select data-i="${i}" data-k="inverted"><option value="0">Normalna</option><option value="1">Odwrocona</option></select>
+          <div class="rule-actions"><button class="secondary" onclick="pulse(${i},1)">ON</button><button class="secondary" onclick="pulse(${i},0)">OFF</button><button class="danger icon" title="Usun" onclick="delRule(${i})">x</button></div>`;
+        el.appendChild(row);
+        ['enabled','pin','topic','name','inverted'].forEach(k => {
+          const n = row.querySelector(`[data-k="${k}"]`);
+          n.value = r[k] === true ? '1' : r[k] === false ? '0' : r[k];
+          n.oninput = () => {
+            let value = n.value;
+            if (k === 'pin') value = Number(value);
+            if (k === 'enabled' || k === 'inverted') value = value === '1';
+            cfg.rules[i][k] = value;
+          };
+        });
+      });
+    }
+
+    function addRule() {
+      cfg.rules = cfg.rules || [];
+      const pin = 2;
+      cfg.rules.push({ enabled: true, pin, name: 'OUT', topic: `${cfg.base_topic || 'kamami/gateway'}/gpio/${pin}/set`, inverted: false, retain: true });
+      renderRules();
+    }
+
+    function delRule(i) {
+      cfg.rules.splice(i, 1);
+      renderRules();
+    }
+
+    function renderModbusRules() {
+      const el = $('modbusRules');
+      el.innerHTML = '';
+      (cfg.modbus_tcp || []).forEach((r, i) => {
+        const row = document.createElement('div');
+        row.className = 'modbus-rule';
+        row.innerHTML = `
+          <select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select>
+          <select data-i="${i}" data-k="direction"><option value="0">Topic -> reg</option><option value="1">Reg -> topic</option><option value="2">Oba</option></select>
+          <input class="mb-topic" data-i="${i}" data-k="topic">
+          <input class="mb-host" data-i="${i}" data-k="host">
+          <input data-i="${i}" data-k="port" type="number" min="1" max="65535">
+          <input data-i="${i}" data-k="unit" type="number" min="1" max="247">
+          <input data-i="${i}" data-k="reg" type="number" min="0" max="65535">
+          <input data-i="${i}" data-k="poll_ms" type="number" min="200" step="100">
+          <span class="badge">${r.has_value ? r.last_value : '-'}</span>
+          <button class="danger icon" title="Usun" onclick="delModbusRule(${i})">x</button>`;
+        el.appendChild(row);
+        ['enabled','direction','topic','host','port','unit','reg','poll_ms'].forEach(k => {
+          const n = row.querySelector(`[data-k="${k}"]`);
+          n.value = r[k] === true ? '1' : r[k] === false ? '0' : (r[k] == null ? '' : r[k]);
+          n.oninput = () => {
+            let value = n.value;
+            if (['direction','port','unit','reg','poll_ms'].includes(k)) value = Number(value);
+            if (k === 'enabled') value = value === '1';
+            cfg.modbus_tcp[i][k] = value;
+          };
+        });
+      });
+    }
+
+    function addModbusRule() {
+      cfg.modbus_tcp = cfg.modbus_tcp || [];
+      cfg.modbus_tcp.push({
+        enabled: true,
+        direction: 0,
+        name: 'MODBUS',
+        topic: `${cfg.base_topic || 'kamami/gateway'}/modbus/0`,
+        host: '192.168.1.100',
+        port: 502,
+        unit: 1,
+        reg: 0,
+        poll_ms: 1000
+      });
+      renderModbusRules();
+    }
+
+    function delModbusRule(i) {
+      cfg.modbus_tcp.splice(i, 1);
+      renderModbusRules();
+    }
+
+    function sensorLastText(r) {
+      const parts = [];
+      const tu = r.temperature_unit_label || tempUnitLabel(r.temp_unit);
+      const pu = r.pressure_unit_label || pressUnitLabel(r.press_unit);
+      if (r.has_temp) parts.push(`${Number(r.last_temp).toFixed(1)}${tu}`);
+      if (r.has_hum) parts.push(`${Number(r.last_hum).toFixed(0)}%`);
+      if (r.has_press) parts.push(`${Number(r.last_press).toFixed(0)}${pu}`);
+      return parts.length ? parts.join(' ') : '-';
+    }
+
+    function tempUnitLabel(v) {
+      return Number(v) === 1 ? 'F' : Number(v) === 2 ? 'K' : 'C';
+    }
+
+    function pressUnitLabel(v) {
+      return Number(v) === 1 ? 'Pa' : Number(v) === 2 ? 'kPa' : Number(v) === 3 ? 'bar' : 'hPa';
+    }
+
+    function resolutionOptions(type, value) {
+      const v = Number(value);
+      if (type === 0) return [9,10,11,12].map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${x} bit</option>`).join('');
+      if (type === 1) return [1,2,4,8,16].map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>oversampling x${x}</option>`).join('');
+      if (type === 2) return [['0','high'],['1','medium'],['2','low']].map(([x,t]) => `<option value="${x}" ${String(v) === x ? 'selected' : ''}>${t}</option>`).join('');
+      return `<option value="1">standard</option>`;
+    }
+
+    function renderSensorRules() {
+      const el = $('sensorRules');
+      el.innerHTML = '';
+      (cfg.sensors || []).forEach((r, i) => {
+        const gpioOptions = value => safeSensorGpios.map(pin => `<option value="${pin}" ${Number(value) === pin ? 'selected' : ''}>GPIO${pin}</option>`).join('');
+        const type = Number(r.type || 0);
+        const usesI2c = type === 1 || type === 2;
+        const usesOneWire = type === 0;
+        const usesDataPin = type === 0 || type === 3 || type === 4;
+        const row = document.createElement('div');
+        row.className = 'sensor-rule';
+        row.innerHTML = `
+          <label><span class="label">Aktywne</span><select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select></label>
+          <label><span class="label">Typ</span><select data-i="${i}" data-k="type"><option value="0">DS18B20</option><option value="1">BME280</option><option value="2">SHT3x/SHT30/SHT31</option><option value="3">DHT22/AM2302</option><option value="4">DHT11</option></select></label>
+          <label class="sensor-name"><span class="label">Nazwa robocza</span><input data-i="${i}" data-k="name"></label>
+          <label class="sensor-topic"><span class="label">Topic</span><input data-i="${i}" data-k="topic"></label>
+          ${usesDataPin ? `<label><span class="label">GPIO data</span><select data-i="${i}" data-k="pin">${gpioOptions(r.pin)}</select></label>` : ''}
+          ${usesI2c ? `<label><span class="label">SDA</span><select data-i="${i}" data-k="sda">${gpioOptions(r.sda)}</select></label>
+          <label><span class="label">SCL</span><select data-i="${i}" data-k="scl">${gpioOptions(r.scl)}</select></label>
+          <label><span class="label">Adres I2C</span><input data-i="${i}" data-k="addr"></label>` : ''}
+          ${usesOneWire ? `<label><span class="label">ROM DS18B20</span><input data-i="${i}" data-k="rom"></label>` : ''}
+          <label><span class="label">Interwal ms</span><input data-i="${i}" data-k="poll_ms" type="number" min="1000" step="1000"></label>
+          <label><span class="label">Jedn. temp.</span><select data-i="${i}" data-k="temp_unit"><option value="0">C</option><option value="1">F</option><option value="2">K</option></select></label>
+          ${type === 1 ? `<label><span class="label">Jedn. cisn.</span><select data-i="${i}" data-k="press_unit"><option value="0">hPa</option><option value="1">Pa</option><option value="2">kPa</option><option value="3">bar</option></select></label>` : ''}
+          <label class="sensor-wide"><span class="label">Rozdzielczosc</span><select data-i="${i}" data-k="resolution">${resolutionOptions(type, r.resolution)}</select></label>
+          <label><span class="label">Offset temp. C</span><input data-i="${i}" data-k="temp_offset" type="number" step="0.1"></label>
+          ${(type === 1 || type === 2 || type === 3 || type === 4) ? `<label><span class="label">Offset wilg. %</span><input data-i="${i}" data-k="hum_offset" type="number" step="0.1"></label>` : ''}
+          ${type === 1 ? `<label><span class="label">Offset cisn. hPa</span><input data-i="${i}" data-k="press_offset" type="number" step="0.1"></label>` : ''}
+          <span class="badge">${sensorLastText(r)}</span>
+          ${(usesI2c || usesOneWire) ? `<button class="secondary icon" title="Skanuj adres" onclick="scanSensor(${i})">?</button>` : ''}
+          <button class="danger icon" title="Usun" onclick="delSensorRule(${i})">x</button>`;
+        el.appendChild(row);
+        ['enabled','type','name','topic','pin','sda','scl','addr','rom','poll_ms','resolution','temp_unit','press_unit','temp_offset','hum_offset','press_offset'].forEach(k => {
+          const n = row.querySelector(`[data-k="${k}"]`);
+          if (!n) return;
+          n.value = r[k] === true ? '1' : r[k] === false ? '0' : (r[k] == null ? '' : r[k]);
+          n.oninput = () => {
+            let value = n.value;
+            if (['type','pin','sda','scl','poll_ms','resolution','temp_unit','press_unit'].includes(k)) value = Number(value);
+            if (['addr','temp_offset','hum_offset','press_offset'].includes(k)) value = Number(value);
+            if (k === 'enabled') value = value === '1';
+            cfg.sensors[i][k] = value;
+            if (k === 'type') {
+              if (value === 2) cfg.sensors[i].addr = 0x44;
+              if (value === 2) cfg.sensors[i].resolution = 0;
+              if (value === 1) {
+                cfg.sensors[i].addr = 0x76;
+                cfg.sensors[i].resolution = 1;
+              }
+              if (value === 0) cfg.sensors[i].resolution = 12;
+              renderSensorRules();
+            }
+          };
+        });
+      });
+    }
+
+    async function scanSensor(i) {
+      const sensor = cfg.sensors[i];
+      const res = await (await fetch('/api/sensor/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sensor)
+      })).json();
+      if (!res.ok) {
+        toast(res.error || 'Nie znaleziono adresu');
+        return;
+      }
+      if (res.rom) {
+        cfg.sensors[i].rom = res.rom;
+        toast(`DS18B20 ROM: ${res.rom}`);
+      } else if (res.addresses && res.addresses.length) {
+        cfg.sensors[i].addr = res.addresses[0].value;
+        toast(`I2C: ${res.addresses.map(a => a.hex).join(', ')}`);
+      }
+      renderSensorRules();
+    }
+
+    function addSensorRule() {
+      cfg.sensors = cfg.sensors || [];
+      const index = cfg.sensors.length + 1;
+      cfg.sensors.push({
+        enabled: true,
+        type: 0,
+        name: `SENSOR${index}`,
+        topic: `${cfg.base_topic || 'kamami/gateway'}/sensor/${index}`,
+        pin: 32,
+        sda: 32,
+        scl: 33,
+        addr: 0x76,
+        rom: '',
+        resolution: 12,
+        temp_unit: 0,
+        press_unit: 0,
+        temp_offset: 0,
+        hum_offset: 0,
+        press_offset: 0,
+        poll_ms: 10000
+      });
+      renderSensorRules();
+    }
+
+    function delSensorRule(i) {
+      cfg.sensors.splice(i, 1);
+      renderSensorRules();
+    }
+
+    async function pulse(index, value) {
+      await fetch('/api/gpio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ index, value }) });
+      toast(value ? 'GPIO ON' : 'GPIO OFF');
+    }
+
+    async function save() {
+      ids.forEach(id => cfg[id] = $(id).value);
+      cfg.net_mode = Number(cfg.net_mode);
+      cfg.dhcp = $('dhcp').value === '1';
+      cfg.espnow_enabled = $('espnow_enabled').value === '1';
+      cfg.espnow_channel = Number(cfg.espnow_channel || 1);
+      cfg.mqtt_mode = Number(cfg.mqtt_mode);
+      cfg.mqtt_port = Number(cfg.mqtt_port);
+      cfg.broker_port = Number(cfg.broker_port || 1883);
+      const res = await (await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) })).json();
+      toast(res.restart_required ? 'Zapisano. Siec wymaga restartu.' : 'Zapisano i zastosowano.');
+      await loadStatus();
+      await loadSensors();
+      await loadMessages();
+    }
+
+    async function restartDevice() {
+      await fetch('/api/restart', { method: 'POST' });
+      toast('Restartuje urzadzenie');
+    }
+
+    async function loadMessages() {
+      if (explorerPaused) return;
+      const data = await (await fetch('/api/mqtt/messages')).json();
+      const rows = data.messages || [];
+      $('explorerNotice').innerHTML = `<span>${data.broker_running ? `Broker aktywny na porcie ${data.broker_port}` : 'Broker nieaktywny'} - ostatnie ${rows.length} wiadomosci.</span>`;
+      $('mqttMessages').innerHTML = rows.length ? rows.slice().reverse().map(m => {
+        const age = Math.max(0, Math.round((Date.now() - performance.timeOrigin - m.at_ms) / 1000));
+        return `<div class="msg"><span class="badge">#${m.seq}</span><span>${m.client || '-'}</span><code class="topic">${m.topic}</code><code class="payload">${m.payload || ''}</code><span class="badge">q${m.qos}${m.retain ? ' R' : ''} ${m.len}B</span></div>`;
+      }).join('') : '<div class="metric"><span class="label">Brak wiadomosci</span><b>MQTT Explorer</b></div>';
+    }
+
+    async function clearMessages() {
+      await fetch('/api/mqtt/messages', { method: 'DELETE' });
+      await loadMessages();
+      toast('Explorer wyczyszczony');
+    }
+
+    async function loadAll() {
+      await loadCfg();
+      await loadStatus();
+      await loadSensors();
+    }
+
+    $('saveBtn').addEventListener('click', save);
+    $('refreshBtn').addEventListener('click', loadAll);
+    $('restartBtn').addEventListener('click', restartDevice);
+    $('mqtt_mode').addEventListener('change', updateMqttVisibility);
+    $('pauseExplorerBtn').addEventListener('click', () => {
+      explorerPaused = !explorerPaused;
+      $('pauseExplorerBtn').textContent = explorerPaused ? 'Wznow' : 'Pauza';
+    });
+    bindTabs();
+    loadAll();
+    setInterval(loadStatus, 2500);
+    setInterval(loadSensors, 5000);
+    setInterval(loadMessages, 1500);
+  </script>
+</body>
+</html>
