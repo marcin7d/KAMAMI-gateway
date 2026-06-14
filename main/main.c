@@ -32,6 +32,7 @@
 #define MAX_GPIO_RULES 12
 #define MAX_MODBUS_RULES 12
 #define MAX_SENSOR_RULES 12
+#define MAX_ENGINE_RULES 12
 #define MAX_MQTT_LOG 48
 #define MQTT_LOG_PAYLOAD_LEN 192
 #define MQTT_LOCAL_CLIENT_ID "kamami-gateway-local"
@@ -50,6 +51,9 @@ typedef enum { MB_TOPIC_TO_REG = 0, MB_REG_TO_TOPIC = 1, MB_BOTH = 2 } modbus_di
 typedef enum { SENSOR_DS18B20 = 0, SENSOR_BME280 = 1, SENSOR_SHT3X = 2, SENSOR_DHT22 = 3, SENSOR_DHT11 = 4 } sensor_type_t;
 typedef enum { TEMP_C = 0, TEMP_F = 1, TEMP_K = 2 } temp_unit_t;
 typedef enum { PRESS_HPA = 0, PRESS_PA = 1, PRESS_KPA = 2, PRESS_BAR = 3 } press_unit_t;
+typedef enum { RULE_SRC_MQTT = 0, RULE_SRC_TEMP = 1, RULE_SRC_HUM = 2, RULE_SRC_PRESS = 3 } rule_source_t;
+typedef enum { RULE_OP_ANY = 0, RULE_OP_EQ = 1, RULE_OP_NE = 2, RULE_OP_GT = 3, RULE_OP_GTE = 4, RULE_OP_LT = 5, RULE_OP_LTE = 6, RULE_OP_CONTAINS = 7 } rule_op_t;
+typedef enum { RULE_ACT_MQTT = 0, RULE_ACT_GPIO = 1, RULE_ACT_MODBUS = 2 } rule_action_t;
 
 typedef struct {
     bool enabled;
@@ -102,6 +106,25 @@ typedef struct {
 } sensor_rule_t;
 
 typedef struct {
+    bool enabled;
+    char name[24];
+    rule_source_t source;
+    char source_topic[96];
+    int sensor_index;
+    rule_op_t op;
+    char compare[32];
+    rule_action_t action;
+    char action_topic[96];
+    char action_payload[96];
+    int action_gpio_index;
+    bool action_gpio_value;
+    int action_modbus_index;
+    int action_modbus_value;
+    int cooldown_ms;
+    uint32_t last_fire_ms;
+} engine_rule_t;
+
+typedef struct {
     char host[32];
     int ui_lang;
     net_mode_t net_mode;
@@ -131,6 +154,7 @@ typedef struct {
     gpio_rule_t rules[MAX_GPIO_RULES];
     modbus_rule_t modbus[MAX_MODBUS_RULES];
     sensor_rule_t sensors[MAX_SENSOR_RULES];
+    engine_rule_t engine[MAX_ENGINE_RULES];
 } gateway_config_t;
 
 typedef struct {
@@ -288,6 +312,15 @@ static void set_defaults(void)
         g_cfg.sensors[i].temp_unit = TEMP_C;
         g_cfg.sensors[i].press_unit = PRESS_HPA;
     }
+    for (int i = 0; i < MAX_ENGINE_RULES; i++) {
+        g_cfg.engine[i].source = RULE_SRC_MQTT;
+        g_cfg.engine[i].op = RULE_OP_ANY;
+        g_cfg.engine[i].action = RULE_ACT_MQTT;
+        g_cfg.engine[i].action_gpio_index = 0;
+        g_cfg.engine[i].action_modbus_index = 0;
+        g_cfg.engine[i].cooldown_ms = 1000;
+        copy_str(g_cfg.engine[i].action_payload, sizeof(g_cfg.engine[i].action_payload), "${value}");
+    }
 }
 
 static bool parse_bool_payload(const char *data, int len)
@@ -410,6 +443,18 @@ static bool parse_u16_payload(const char *data, int len, uint16_t *out)
     long value = strtol(tmp, &end, 0);
     if (end == tmp || value < 0 || value > 65535) return false;
     *out = (uint16_t)value;
+    return true;
+}
+
+static bool parse_double_text(const char *data, int len, double *out)
+{
+    char tmp[40] = {0};
+    int n = len < (int)sizeof(tmp) - 1 ? len : (int)sizeof(tmp) - 1;
+    memcpy(tmp, data, n);
+    char *end = NULL;
+    double value = strtod(tmp, &end);
+    if (end == tmp) return false;
+    *out = value;
     return true;
 }
 
@@ -913,6 +958,122 @@ static void handle_modbus_topic_message(const char *topic, const char *data, int
     }
 }
 
+static bool rule_condition_matches(engine_rule_t *rule, const char *value, int value_len)
+{
+    if (rule->op == RULE_OP_ANY) return true;
+    if (!value) value = "";
+    if (value_len < 0) value_len = strlen(value);
+    if (rule->op == RULE_OP_CONTAINS) {
+        char tmp[96] = {0};
+        int n = value_len < (int)sizeof(tmp) - 1 ? value_len : (int)sizeof(tmp) - 1;
+        memcpy(tmp, value, n);
+        return strstr(tmp, rule->compare) != NULL;
+    }
+
+    double left = 0.0, right = 0.0;
+    bool have_left = parse_double_text(value, value_len, &left);
+    bool have_right = parse_double_text(rule->compare, strlen(rule->compare), &right);
+    if (have_left && have_right) {
+        switch (rule->op) {
+            case RULE_OP_EQ: return left == right;
+            case RULE_OP_NE: return left != right;
+            case RULE_OP_GT: return left > right;
+            case RULE_OP_GTE: return left >= right;
+            case RULE_OP_LT: return left < right;
+            case RULE_OP_LTE: return left <= right;
+            default: return false;
+        }
+    }
+
+    char tmp[96] = {0};
+    int n = value_len < (int)sizeof(tmp) - 1 ? value_len : (int)sizeof(tmp) - 1;
+    memcpy(tmp, value, n);
+    int cmp = strcmp(tmp, rule->compare);
+    if (rule->op == RULE_OP_EQ) return cmp == 0;
+    if (rule->op == RULE_OP_NE) return cmp != 0;
+    return false;
+}
+
+static void rule_build_payload(engine_rule_t *rule, const char *value, const char *source, char *out, size_t out_size)
+{
+    const char *tpl = rule->action_payload[0] ? rule->action_payload : "${value}";
+    if (strcmp(tpl, "${value}") == 0) {
+        copy_str(out, out_size, value);
+    } else if (strcmp(tpl, "${source}") == 0) {
+        copy_str(out, out_size, source);
+    } else if (strcmp(tpl, "${name}") == 0) {
+        copy_str(out, out_size, rule->name);
+    } else {
+        copy_str(out, out_size, tpl);
+    }
+}
+
+static void rule_execute(engine_rule_t *rule, const char *value, const char *source)
+{
+    uint32_t now = (uint32_t)(esp_timer_get_time() / 1000ULL);
+    int cooldown = rule->cooldown_ms < 0 ? 0 : rule->cooldown_ms;
+    if (cooldown > 0 && rule->last_fire_ms && (int32_t)(now - rule->last_fire_ms) < cooldown) return;
+    rule->last_fire_ms = now;
+
+    char payload[128];
+    rule_build_payload(rule, value, source, payload, sizeof(payload));
+    if (rule->action == RULE_ACT_MQTT) {
+        mqtt_publish_text(rule->action_topic, payload, false);
+    } else if (rule->action == RULE_ACT_GPIO) {
+        apply_gpio_rule(rule->action_gpio_index, rule->action_gpio_value, true);
+    } else if (rule->action == RULE_ACT_MODBUS) {
+        int idx = rule->action_modbus_index;
+        if (idx >= 0 && idx < MAX_MODBUS_RULES) {
+            uint16_t out_value = (uint16_t)(rule->action_modbus_value < 0 ? 0 : rule->action_modbus_value);
+            double parsed = 0.0;
+            if (parse_double_text(payload, strlen(payload), &parsed)) {
+                if (parsed < 0.0) parsed = 0.0;
+                if (parsed > 65535.0) parsed = 65535.0;
+                out_value = (uint16_t)parsed;
+            }
+            if (modbus_write_single(&g_cfg.modbus[idx], out_value)) {
+                g_cfg.modbus[idx].last_value = out_value;
+                g_cfg.modbus[idx].has_value = true;
+            }
+        }
+    }
+}
+
+static void evaluate_rule_engine_mqtt(const char *topic, const char *data, int len)
+{
+    if (!topic || !data) return;
+    for (int i = 0; i < MAX_ENGINE_RULES; i++) {
+        engine_rule_t *rule = &g_cfg.engine[i];
+        if (!rule->enabled || rule->source != RULE_SRC_MQTT || !rule->source_topic[0]) continue;
+        if (strcmp(topic, rule->source_topic) != 0) continue;
+        if (rule_condition_matches(rule, data, len)) rule_execute(rule, data, topic);
+    }
+}
+
+static void evaluate_rule_engine_sensor(int sensor_index, sensor_rule_t *sensor)
+{
+    char value[32];
+    for (int i = 0; i < MAX_ENGINE_RULES; i++) {
+        engine_rule_t *rule = &g_cfg.engine[i];
+        if (!rule->enabled || rule->source == RULE_SRC_MQTT || rule->sensor_index != sensor_index) continue;
+        bool has_value = false;
+        float current = 0.0f;
+        if (rule->source == RULE_SRC_TEMP && sensor->has_temp) {
+            current = sensor->last_temp;
+            has_value = true;
+        } else if (rule->source == RULE_SRC_HUM && sensor->has_hum) {
+            current = sensor->last_hum;
+            has_value = true;
+        } else if (rule->source == RULE_SRC_PRESS && sensor->has_press) {
+            current = sensor->last_press;
+            has_value = true;
+        }
+        if (!has_value) continue;
+        snprintf(value, sizeof(value), "%.2f", current);
+        if (rule_condition_matches(rule, value, strlen(value))) rule_execute(rule, value, sensor->topic);
+    }
+}
+
 static bool parse_mac(const char *text, uint8_t mac[6])
 {
     if (!text) return false;
@@ -1024,6 +1185,28 @@ static cJSON *config_to_json(void)
         cJSON_AddBoolToObject(s, "has_press", g_cfg.sensors[i].has_press);
         cJSON_AddItemToArray(sensors, s);
     }
+    cJSON *engine = cJSON_AddArrayToObject(root, "rule_engine");
+    for (int i = 0; i < MAX_ENGINE_RULES; i++) {
+        if (!g_cfg.engine[i].enabled && !g_cfg.engine[i].name[0] && !g_cfg.engine[i].source_topic[0]) continue;
+        cJSON *r = cJSON_CreateObject();
+        cJSON_AddBoolToObject(r, "enabled", g_cfg.engine[i].enabled);
+        cJSON_AddStringToObject(r, "name", g_cfg.engine[i].name);
+        cJSON_AddNumberToObject(r, "source", g_cfg.engine[i].source);
+        cJSON_AddStringToObject(r, "source_topic", g_cfg.engine[i].source_topic);
+        cJSON_AddNumberToObject(r, "sensor_index", g_cfg.engine[i].sensor_index);
+        cJSON_AddNumberToObject(r, "op", g_cfg.engine[i].op);
+        cJSON_AddStringToObject(r, "compare", g_cfg.engine[i].compare);
+        cJSON_AddNumberToObject(r, "action", g_cfg.engine[i].action);
+        cJSON_AddStringToObject(r, "action_topic", g_cfg.engine[i].action_topic);
+        cJSON_AddStringToObject(r, "action_payload", g_cfg.engine[i].action_payload);
+        cJSON_AddNumberToObject(r, "action_gpio_index", g_cfg.engine[i].action_gpio_index);
+        cJSON_AddBoolToObject(r, "action_gpio_value", g_cfg.engine[i].action_gpio_value);
+        cJSON_AddNumberToObject(r, "action_modbus_index", g_cfg.engine[i].action_modbus_index);
+        cJSON_AddNumberToObject(r, "action_modbus_value", g_cfg.engine[i].action_modbus_value);
+        cJSON_AddNumberToObject(r, "cooldown_ms", g_cfg.engine[i].cooldown_ms);
+        cJSON_AddNumberToObject(r, "last_fire_ms", g_cfg.engine[i].last_fire_ms);
+        cJSON_AddItemToArray(engine, r);
+    }
     return root;
 }
 
@@ -1123,6 +1306,39 @@ static void parse_config_json(const char *json)
             i++;
         }
     }
+    cJSON *engine = cJSON_GetObjectItem(root, "rule_engine");
+    if (cJSON_IsArray(engine)) {
+        memset(g_cfg.engine, 0, sizeof(g_cfg.engine));
+        int i = 0;
+        cJSON *r;
+        cJSON_ArrayForEach(r, engine) {
+            if (i >= MAX_ENGINE_RULES) break;
+            g_cfg.engine[i].enabled = cJSON_IsTrue(cJSON_GetObjectItem(r, "enabled"));
+            copy_str(g_cfg.engine[i].name, sizeof(g_cfg.engine[i].name), cJSON_GetStringValue(cJSON_GetObjectItem(r, "name")));
+            g_cfg.engine[i].source = cJSON_GetObjectItem(r, "source") ? cJSON_GetObjectItem(r, "source")->valueint : RULE_SRC_MQTT;
+            copy_str(g_cfg.engine[i].source_topic, sizeof(g_cfg.engine[i].source_topic), cJSON_GetStringValue(cJSON_GetObjectItem(r, "source_topic")));
+            g_cfg.engine[i].sensor_index = cJSON_GetObjectItem(r, "sensor_index") ? cJSON_GetObjectItem(r, "sensor_index")->valueint : 0;
+            g_cfg.engine[i].op = cJSON_GetObjectItem(r, "op") ? cJSON_GetObjectItem(r, "op")->valueint : RULE_OP_ANY;
+            copy_str(g_cfg.engine[i].compare, sizeof(g_cfg.engine[i].compare), cJSON_GetStringValue(cJSON_GetObjectItem(r, "compare")));
+            g_cfg.engine[i].action = cJSON_GetObjectItem(r, "action") ? cJSON_GetObjectItem(r, "action")->valueint : RULE_ACT_MQTT;
+            copy_str(g_cfg.engine[i].action_topic, sizeof(g_cfg.engine[i].action_topic), cJSON_GetStringValue(cJSON_GetObjectItem(r, "action_topic")));
+            copy_str(g_cfg.engine[i].action_payload, sizeof(g_cfg.engine[i].action_payload), cJSON_GetStringValue(cJSON_GetObjectItem(r, "action_payload")));
+            g_cfg.engine[i].action_gpio_index = cJSON_GetObjectItem(r, "action_gpio_index") ? cJSON_GetObjectItem(r, "action_gpio_index")->valueint : 0;
+            g_cfg.engine[i].action_gpio_value = cJSON_IsTrue(cJSON_GetObjectItem(r, "action_gpio_value"));
+            g_cfg.engine[i].action_modbus_index = cJSON_GetObjectItem(r, "action_modbus_index") ? cJSON_GetObjectItem(r, "action_modbus_index")->valueint : 0;
+            g_cfg.engine[i].action_modbus_value = cJSON_GetObjectItem(r, "action_modbus_value") ? cJSON_GetObjectItem(r, "action_modbus_value")->valueint : 0;
+            g_cfg.engine[i].cooldown_ms = cJSON_GetObjectItem(r, "cooldown_ms") ? cJSON_GetObjectItem(r, "cooldown_ms")->valueint : 1000;
+            if (g_cfg.engine[i].source < RULE_SRC_MQTT || g_cfg.engine[i].source > RULE_SRC_PRESS) g_cfg.engine[i].source = RULE_SRC_MQTT;
+            if (g_cfg.engine[i].op < RULE_OP_ANY || g_cfg.engine[i].op > RULE_OP_CONTAINS) g_cfg.engine[i].op = RULE_OP_ANY;
+            if (g_cfg.engine[i].action < RULE_ACT_MQTT || g_cfg.engine[i].action > RULE_ACT_MODBUS) g_cfg.engine[i].action = RULE_ACT_MQTT;
+            if (g_cfg.engine[i].sensor_index < 0 || g_cfg.engine[i].sensor_index >= MAX_SENSOR_RULES) g_cfg.engine[i].sensor_index = 0;
+            if (g_cfg.engine[i].action_gpio_index < 0 || g_cfg.engine[i].action_gpio_index >= MAX_GPIO_RULES) g_cfg.engine[i].action_gpio_index = 0;
+            if (g_cfg.engine[i].action_modbus_index < 0 || g_cfg.engine[i].action_modbus_index >= MAX_MODBUS_RULES) g_cfg.engine[i].action_modbus_index = 0;
+            if (g_cfg.engine[i].cooldown_ms < 0) g_cfg.engine[i].cooldown_ms = 0;
+            if (!g_cfg.engine[i].action_payload[0]) copy_str(g_cfg.engine[i].action_payload, sizeof(g_cfg.engine[i].action_payload), "${value}");
+            i++;
+        }
+    }
     cJSON_Delete(root);
 }
 
@@ -1188,7 +1404,8 @@ static bool mqtt_config_changed(const gateway_config_t *old)
         return true;
     }
     return memcmp(old->rules, g_cfg.rules, sizeof(g_cfg.rules)) != 0 ||
-           memcmp(old->modbus, g_cfg.modbus, sizeof(g_cfg.modbus)) != 0;
+           memcmp(old->modbus, g_cfg.modbus, sizeof(g_cfg.modbus)) != 0 ||
+           memcmp(old->engine, g_cfg.engine, sizeof(g_cfg.engine)) != 0;
 }
 
 static void stop_mqtt_client(void)
@@ -1823,6 +2040,12 @@ static void mqtt_event_handler(void *args, esp_event_base_t base, int32_t event_
             if (g_cfg.espnow_enabled && g_cfg.espnow_tx_topic[0]) {
                 esp_mqtt_client_subscribe(event->client, g_cfg.espnow_tx_topic, 0);
             }
+            for (int i = 0; i < MAX_ENGINE_RULES; i++) {
+                engine_rule_t *rule = &g_cfg.engine[i];
+                if (rule->enabled && rule->source == RULE_SRC_MQTT && rule->source_topic[0]) {
+                    esp_mqtt_client_subscribe(event->client, rule->source_topic, 0);
+                }
+            }
         }
     } else if (event_id == MQTT_EVENT_DISCONNECTED) {
         g_mqtt_online = false;
@@ -1833,6 +2056,7 @@ static void mqtt_event_handler(void *args, esp_event_base_t base, int32_t event_
         handle_topic_message(topic, event->data, event->data_len, true);
         handle_modbus_topic_message(topic, event->data, event->data_len);
         handle_espnow_topic_message(topic, event->data, event->data_len);
+        evaluate_rule_engine_mqtt(topic, event->data, event->data_len);
     }
 }
 
@@ -1899,6 +2123,7 @@ static void broker_message_cb(char *client, char *topic, char *data, int len, in
             handle_topic_message(topic, data, len, true);
             handle_modbus_topic_message(topic, data, len);
             handle_espnow_topic_message(topic, data, len);
+            evaluate_rule_engine_mqtt(topic, data, len);
         }
     }
 }
@@ -2013,6 +2238,7 @@ static void sensor_task(void *arg)
             }
             if (ok) {
                 publish_sensor_reading(rule);
+                evaluate_rule_engine_sensor(i, rule);
             } else {
                 ESP_LOGW(TAG, "Sensor read failed: idx=%d type=%d", i, rule->type);
             }

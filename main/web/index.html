@@ -225,6 +225,18 @@
     .sensor-rule .sensor-topic { grid-column: span 3; }
     .sensor-rule .sensor-wide { grid-column: span 2; }
     .sensor-rule:last-child { border-bottom: 0; }
+    .engine-rule {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .engine-rule:last-child { border-bottom: 0; }
+    .engine-rule label { min-width: 0; }
+    .engine-rule .span-2 { grid-column: span 2; }
+    .engine-rule .span-3 { grid-column: span 3; }
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .hidden { display: none !important; }
     .notice {
@@ -349,6 +361,7 @@
           <button class="tab" data-page="explorer"><span>Explorer</span><span>&gt;</span></button>
           <button class="tab" data-page="modbus"><span>Modbus TCP</span><span>&gt;</span></button>
           <button class="tab" data-page="sensors"><span data-i18n="tabSensors">Czujniki</span><span>&gt;</span></button>
+          <button class="tab" data-page="engine"><span data-i18n="tabRules">Rules</span><span>&gt;</span></button>
           <button class="tab" data-page="system"><span data-i18n="tabSystem">System</span><span>&gt;</span></button>
           <button class="tab" data-page="gpio"><span>GPIO</span><span>&gt;</span></button>
         </nav>
@@ -453,6 +466,19 @@
           </div>
         </section>
 
+        <section class="page" id="engine">
+          <div class="card">
+            <div class="section-head">
+              <h2 data-i18n="ruleEngine">Rule Engine</h2>
+              <div class="toolbar"><button class="secondary" onclick="addEngineRule()" data-i18n="add">Dodaj</button></div>
+            </div>
+            <div class="section-body">
+              <div class="notice show"><span data-i18n="ruleNotice">Reguly wykonuja akcje po odebraniu topicu MQTT albo po odczycie czujnika. Cooldown chroni przed petla zdarzen.</span></div>
+              <div id="engineRules"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="page" id="system">
           <div class="card">
             <div class="section-head"><h2 data-i18n="systemTools">System</h2></div>
@@ -504,7 +530,7 @@
         loading: 'ladowanie...', save: 'Zapisz', restart: 'Restart', refresh: 'Odswiez',
         add: 'Dodaj', clear: 'Wyczysc', pause: 'Pauza', resume: 'Wznow', delete: 'Usun',
         yes: 'Tak', no: 'Nie', static: 'Statyczny', enabled: 'Wlaczony', disabled: 'Wylaczony',
-        tabStatus: 'Status', tabNetwork: 'Siec', tabSensors: 'Czujniki', tabSystem: 'System',
+        tabStatus: 'Status', tabNetwork: 'Siec', tabSensors: 'Czujniki', tabSystem: 'System', tabRules: 'Rules',
         runtimeStatus: 'Status runtime', sensors: 'Czujniki', networkInterfaces: 'Interfejsy sieciowe',
         restartNotice: 'Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.',
         mode: 'Tryb', gateway: 'Brama', subnet: 'Maska', wifiStaPass: 'WiFi STA haslo',
@@ -535,13 +561,19 @@
         configImported: 'Konfiguracja zaimportowana.', chooseConfig: 'Wybierz plik JSON konfiguracji.',
         invalidConfig: 'Niepoprawny plik konfiguracji.', chooseFirmware: 'Wybierz plik firmware .bin.',
         otaUploading: 'Wgrywanie firmware', otaDone: 'Firmware wgrany. Zrestartuj urzadzenie.',
-        otaFailed: 'Aktualizacja OTA nie powiodla sie.'
+        otaFailed: 'Aktualizacja OTA nie powiodla sie.',
+        ruleEngine: 'Rule Engine', ruleNotice: 'Reguly wykonuja akcje po odebraniu topicu MQTT albo po odczycie czujnika. Cooldown chroni przed petla zdarzen.',
+        source: 'Zrodlo', mqttTopic: 'Topic MQTT', sensorValue: 'Wartosc czujnika', operator: 'Operator',
+        compare: 'Prog / wartosc', action: 'Akcja', publishMqtt: 'Publikuj MQTT', setGpio: 'Ustaw GPIO',
+        writeModbus: 'Zapisz Modbus', payload: 'Payload', gpioValue: 'Stan GPIO', modbusValue: 'Wartosc Modbus',
+        cooldownMs: 'Cooldown ms', any: 'Kazde zdarzenie', contains: 'Zawiera', temperature: 'Temperatura',
+        humidity: 'Wilgotnosc', pressure: 'Cisnienie'
       },
       en: {
         loading: 'loading...', save: 'Save', restart: 'Restart', refresh: 'Refresh',
         add: 'Add', clear: 'Clear', pause: 'Pause', resume: 'Resume', delete: 'Delete',
         yes: 'Yes', no: 'No', static: 'Static', enabled: 'Enabled', disabled: 'Disabled',
-        tabStatus: 'Status', tabNetwork: 'Network', tabSensors: 'Sensors', tabSystem: 'System',
+        tabStatus: 'Status', tabNetwork: 'Network', tabSensors: 'Sensors', tabSystem: 'System', tabRules: 'Rules',
         runtimeStatus: 'Runtime status', sensors: 'Sensors', networkInterfaces: 'Network interfaces',
         restartNotice: 'Network changes were saved, but require a restart.',
         mode: 'Mode', gateway: 'Gateway', subnet: 'Subnet', wifiStaPass: 'WiFi STA password',
@@ -572,11 +604,17 @@
         configImported: 'Configuration imported.', chooseConfig: 'Choose a configuration JSON file.',
         invalidConfig: 'Invalid configuration file.', chooseFirmware: 'Choose a firmware .bin file.',
         otaUploading: 'Uploading firmware', otaDone: 'Firmware uploaded. Restart the device.',
-        otaFailed: 'OTA update failed.'
+        otaFailed: 'OTA update failed.',
+        ruleEngine: 'Rule Engine', ruleNotice: 'Rules run actions after an MQTT topic is received or a sensor is read. Cooldown protects against event loops.',
+        source: 'Source', mqttTopic: 'MQTT topic', sensorValue: 'Sensor value', operator: 'Operator',
+        compare: 'Threshold / value', action: 'Action', publishMqtt: 'Publish MQTT', setGpio: 'Set GPIO',
+        writeModbus: 'Write Modbus', payload: 'Payload', gpioValue: 'GPIO state', modbusValue: 'Modbus value',
+        cooldownMs: 'Cooldown ms', any: 'Any event', contains: 'Contains', temperature: 'Temperature',
+        humidity: 'Humidity', pressure: 'Pressure'
       }
     };
     const ids = ['ui_lang','host','net_mode','dhcp','ip','gateway','subnet','dns','sta_ssid','sta_pass','ap_ssid','ap_pass','espnow_enabled','espnow_channel','espnow_peer','espnow_rx_topic','espnow_tx_topic','mqtt_mode','mqtt_host','mqtt_port','mqtt_user','mqtt_pass','base_topic','broker_port','broker_user','broker_pass'];
-    let cfg = { rules: [], modbus_tcp: [], sensors: [] };
+    let cfg = { rules: [], modbus_tcp: [], sensors: [], rule_engine: [] };
     let explorerPaused = false;
     const safeSensorGpios = [13, 14, 16, 17, 32, 33];
     const $ = id => document.getElementById(id);
@@ -631,6 +669,7 @@
       renderRules();
       renderModbusRules();
       renderSensorRules();
+      renderEngineRules();
     }
 
     function updateMqttVisibility() {
@@ -703,11 +742,13 @@
       const pin = 2;
       cfg.rules.push({ enabled: true, pin, name: 'OUT', topic: `${cfg.base_topic || 'kamami/gateway'}/gpio/${pin}/set`, inverted: false, retain: true });
       renderRules();
+      renderEngineRules();
     }
 
     function delRule(i) {
       cfg.rules.splice(i, 1);
       renderRules();
+      renderEngineRules();
     }
 
     function renderModbusRules() {
@@ -755,11 +796,13 @@
         poll_ms: 1000
       });
       renderModbusRules();
+      renderEngineRules();
     }
 
     function delModbusRule(i) {
       cfg.modbus_tcp.splice(i, 1);
       renderModbusRules();
+      renderEngineRules();
     }
 
     function sensorLastText(r) {
@@ -888,11 +931,85 @@
         poll_ms: 10000
       });
       renderSensorRules();
+      renderEngineRules();
     }
 
     function delSensorRule(i) {
       cfg.sensors.splice(i, 1);
+      renderEngineRules();
       renderSensorRules();
+    }
+
+    function selectOptions(items, selected, labelFn) {
+      return items.map((item, idx) => `<option value="${idx}" ${Number(selected) === idx ? 'selected' : ''}>${labelFn(item, idx)}</option>`).join('');
+    }
+
+    function renderEngineRules() {
+      const el = $('engineRules');
+      el.innerHTML = '';
+      cfg.rule_engine = cfg.rule_engine || [];
+      (cfg.rule_engine || []).forEach((r, i) => {
+        const source = Number(r.source || 0);
+        const action = Number(r.action || 0);
+        const row = document.createElement('div');
+        row.className = 'engine-rule';
+        const sensorOptions = selectOptions(cfg.sensors || [], r.sensor_index, (s, idx) => `${idx}: ${s.name || t('sensorNameFallback')}`);
+        const gpioOptions = selectOptions(cfg.rules || [], r.action_gpio_index, (g, idx) => `${idx}: ${g.name || 'GPIO'} GPIO${g.pin}`);
+        const modbusOptions = selectOptions(cfg.modbus_tcp || [], r.action_modbus_index, (m, idx) => `${idx}: ${m.name || 'MODBUS'} ${m.host || ''}/${m.reg || 0}`);
+        row.innerHTML = `
+          <label><span class="label">${t('active')}</span><select data-i="${i}" data-k="enabled"><option value="1">${t('yes')}</option><option value="0">${t('no')}</option></select></label>
+          <label class="span-2"><span class="label">${t('name')}</span><input data-i="${i}" data-k="name"></label>
+          <label class="span-2"><span class="label">${t('source')}</span><select data-i="${i}" data-k="source"><option value="0">${t('mqttTopic')}</option><option value="1">${t('temperature')}</option><option value="2">${t('humidity')}</option><option value="3">${t('pressure')}</option></select></label>
+          ${source === 0 ? `<label class="span-3"><span class="label">${t('mqttTopic')}</span><input data-i="${i}" data-k="source_topic"></label>` : `<label class="span-3"><span class="label">${t('sensorValue')}</span><select data-i="${i}" data-k="sensor_index">${sensorOptions}</select></label>`}
+          <label><span class="label">${t('operator')}</span><select data-i="${i}" data-k="op"><option value="0">${t('any')}</option><option value="1">=</option><option value="2">!=</option><option value="3">&gt;</option><option value="4">&gt;=</option><option value="5">&lt;</option><option value="6">&lt;=</option><option value="7">${t('contains')}</option></select></label>
+          <label class="span-2"><span class="label">${t('compare')}</span><input data-i="${i}" data-k="compare"></label>
+          <label class="span-2"><span class="label">${t('action')}</span><select data-i="${i}" data-k="action"><option value="0">${t('publishMqtt')}</option><option value="1">${t('setGpio')}</option><option value="2">${t('writeModbus')}</option></select></label>
+          ${action === 0 ? `<label class="span-3"><span class="label">Topic</span><input data-i="${i}" data-k="action_topic"></label><label class="span-2"><span class="label">${t('payload')}</span><input data-i="${i}" data-k="action_payload"></label>` : ''}
+          ${action === 1 ? `<label class="span-3"><span class="label">GPIO</span><select data-i="${i}" data-k="action_gpio_index">${gpioOptions}</select></label><label><span class="label">${t('gpioValue')}</span><select data-i="${i}" data-k="action_gpio_value"><option value="1">ON</option><option value="0">OFF</option></select></label>` : ''}
+          ${action === 2 ? `<label class="span-3"><span class="label">Modbus</span><select data-i="${i}" data-k="action_modbus_index">${modbusOptions}</select></label><label><span class="label">${t('modbusValue')}</span><input data-i="${i}" data-k="action_modbus_value" type="number" min="0" max="65535"></label>` : ''}
+          <label><span class="label">${t('cooldownMs')}</span><input data-i="${i}" data-k="cooldown_ms" type="number" min="0" step="100"></label>
+          <button class="danger icon" title="${t('delete')}" onclick="delEngineRule(${i})">x</button>`;
+        el.appendChild(row);
+        ['enabled','name','source','source_topic','sensor_index','op','compare','action','action_topic','action_payload','action_gpio_index','action_gpio_value','action_modbus_index','action_modbus_value','cooldown_ms'].forEach(k => {
+          const n = row.querySelector(`[data-k="${k}"]`);
+          if (!n) return;
+          n.value = r[k] === true ? '1' : r[k] === false ? '0' : (r[k] == null ? '' : r[k]);
+          n.oninput = () => {
+            let value = n.value;
+            if (['source','sensor_index','op','action','action_gpio_index','action_modbus_index','action_modbus_value','cooldown_ms'].includes(k)) value = Number(value);
+            if (k === 'enabled' || k === 'action_gpio_value') value = value === '1';
+            cfg.rule_engine[i][k] = value;
+            if (k === 'source' || k === 'action') renderEngineRules();
+          };
+        });
+      });
+    }
+
+    function addEngineRule() {
+      cfg.rule_engine = cfg.rule_engine || [];
+      cfg.rule_engine.push({
+        enabled: true,
+        name: `RULE${cfg.rule_engine.length + 1}`,
+        source: 0,
+        source_topic: `${cfg.base_topic || 'kamami/gateway'}/in`,
+        sensor_index: 0,
+        op: 0,
+        compare: '',
+        action: 0,
+        action_topic: `${cfg.base_topic || 'kamami/gateway'}/rule/out`,
+        action_payload: '${value}',
+        action_gpio_index: 0,
+        action_gpio_value: true,
+        action_modbus_index: 0,
+        action_modbus_value: 1,
+        cooldown_ms: 1000
+      });
+      renderEngineRules();
+    }
+
+    function delEngineRule(i) {
+      cfg.rule_engine.splice(i, 1);
+      renderEngineRules();
     }
 
     async function pulse(index, value) {

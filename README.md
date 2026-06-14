@@ -32,6 +32,11 @@ Kompleksowa bramka ESP-IDF dla plytki KAmod ESP32 ETH+PoE. Projekt laczy lokalny
   - most MQTT -> ESP-NOW,
   - most ESP-NOW -> MQTT.
 - Konfiguracja Ethernet/WiFi/AP/STA.
+- Rule Engine:
+  - warunki na topic MQTT albo wartosc czujnika,
+  - operatory: kazde zdarzenie, rowne, rozne, wieksze/mniejsze, zawiera,
+  - akcje: publikuj MQTT, ustaw GPIO, zapisz Modbus TCP,
+  - cooldown reguly chroniacy przed petla zdarzen.
 - Zakladka `System`:
   - eksport konfiguracji JSON,
   - import konfiguracji JSON,
@@ -133,6 +138,31 @@ Kazda regula Modbus TCP zawiera:
 - interwal odczytu dla kierunku rejestr -> topic.
 
 Zapis rejestru uzywa funkcji Modbus `FC6`, a odczyt holding register uzywa `FC3`.
+
+## Rule Engine
+
+Reguly sa konfigurowane w zakladce `Rules`. Zrodlem moze byc:
+
+- odebrany topic MQTT,
+- temperatura czujnika,
+- wilgotnosc czujnika,
+- cisnienie czujnika.
+
+Akcje reguly:
+
+- publikacja payloadu na wybrany topic MQTT,
+- ustawienie skonfigurowanego GPIO,
+- zapis wartosci do skonfigurowanej reguly Modbus TCP.
+
+W payloadzie akcji MQTT mozna uzyc:
+
+```text
+${value}
+${source}
+${name}
+```
+
+`Cooldown ms` ogranicza czestotliwosc wyzwalania reguly.
 
 ## Czujniki
 
