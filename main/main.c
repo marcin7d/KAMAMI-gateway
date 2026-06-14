@@ -102,6 +102,7 @@ typedef struct {
 
 typedef struct {
     char host[32];
+    int ui_lang;
     net_mode_t net_mode;
     bool dhcp;
     char ip[16];
@@ -245,6 +246,7 @@ static void set_defaults(void)
 {
     memset(&g_cfg, 0, sizeof(g_cfg));
     copy_str(g_cfg.host, sizeof(g_cfg.host), "kamami-gateway");
+    g_cfg.ui_lang = 0;
     g_cfg.net_mode = NET_ETH_WIFI_AP;
     g_cfg.dhcp = true;
     copy_str(g_cfg.ip, sizeof(g_cfg.ip), "192.168.1.177");
@@ -937,6 +939,7 @@ static cJSON *config_to_json(void)
     cJSON_AddStringToObject(root, "fw", FW_NAME);
     cJSON_AddStringToObject(root, "version", FW_VERSION);
     cJSON_AddStringToObject(root, "host", g_cfg.host);
+    cJSON_AddNumberToObject(root, "ui_lang", g_cfg.ui_lang);
     cJSON_AddNumberToObject(root, "net_mode", g_cfg.net_mode);
     cJSON_AddBoolToObject(root, "dhcp", g_cfg.dhcp);
     cJSON_AddStringToObject(root, "ip", g_cfg.ip);
@@ -1029,6 +1032,7 @@ static void parse_config_json(const char *json)
     if (!root) return;
     cJSON *v;
     if ((v = cJSON_GetObjectItem(root, "host"))) copy_str(g_cfg.host, sizeof(g_cfg.host), cJSON_GetStringValue(v));
+    if ((v = cJSON_GetObjectItem(root, "ui_lang"))) g_cfg.ui_lang = v->valueint ? 1 : 0;
     if ((v = cJSON_GetObjectItem(root, "net_mode"))) g_cfg.net_mode = v->valueint;
     if ((v = cJSON_GetObjectItem(root, "dhcp"))) g_cfg.dhcp = cJSON_IsTrue(v);
     if ((v = cJSON_GetObjectItem(root, "ip"))) copy_str(g_cfg.ip, sizeof(g_cfg.ip), cJSON_GetStringValue(v));

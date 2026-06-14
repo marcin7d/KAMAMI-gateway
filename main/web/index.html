@@ -85,6 +85,7 @@
     h1 { margin: 0; font-size: 18px; font-weight: 750; }
     .sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .actions { display: flex; gap: 8px; align-items: center; }
+    .lang-select { width: 86px; }
     .wrap {
       width: min(1260px, 100%);
       margin: 0 auto;
@@ -331,9 +332,10 @@
         </div>
       </div>
       <div class="actions">
+        <select class="lang-select" id="ui_lang" title="Jezyk / Language"><option value="0">PL</option><option value="1">EN</option></select>
         <button class="secondary" id="refreshBtn" title="Odswiez">R</button>
-        <button class="secondary hidden" id="restartBtn">Restart</button>
-        <button id="saveBtn">Zapisz</button>
+        <button class="secondary hidden" id="restartBtn" data-i18n="restart">Restart</button>
+        <button id="saveBtn" data-i18n="save">Zapisz</button>
       </div>
     </header>
 
@@ -341,47 +343,47 @@
       <aside>
         <section class="card status-list" id="sideStatus"></section>
         <nav class="card tabs">
-          <button class="tab active" data-page="overview">Status <span>&gt;</span></button>
-          <button class="tab" data-page="network">Siec <span>&gt;</span></button>
-          <button class="tab" data-page="mqtt">MQTT <span>&gt;</span></button>
-          <button class="tab" data-page="explorer">Explorer <span>&gt;</span></button>
-          <button class="tab" data-page="modbus">Modbus TCP <span>&gt;</span></button>
-          <button class="tab" data-page="sensors">Czujniki <span>&gt;</span></button>
-          <button class="tab" data-page="gpio">GPIO <span>&gt;</span></button>
+          <button class="tab active" data-page="overview"><span data-i18n="tabStatus">Status</span><span>&gt;</span></button>
+          <button class="tab" data-page="network"><span data-i18n="tabNetwork">Siec</span><span>&gt;</span></button>
+          <button class="tab" data-page="mqtt"><span>MQTT</span><span>&gt;</span></button>
+          <button class="tab" data-page="explorer"><span>Explorer</span><span>&gt;</span></button>
+          <button class="tab" data-page="modbus"><span>Modbus TCP</span><span>&gt;</span></button>
+          <button class="tab" data-page="sensors"><span data-i18n="tabSensors">Czujniki</span><span>&gt;</span></button>
+          <button class="tab" data-page="gpio"><span>GPIO</span><span>&gt;</span></button>
         </nav>
       </aside>
 
       <main>
         <section class="page active" id="overview">
           <div class="card">
-            <div class="section-head"><h2>Status runtime</h2><div class="toolbar"><button class="secondary" onclick="loadAll()">Odswiez</button></div></div>
+            <div class="section-head"><h2 data-i18n="runtimeStatus">Status runtime</h2><div class="toolbar"><button class="secondary" onclick="loadAll()" data-i18n="refresh">Odswiez</button></div></div>
             <div class="section-body"><div class="metric-grid" id="metrics"></div></div>
           </div>
           <div class="card">
-            <div class="section-head"><h2>Czujniki</h2><div class="toolbar"><button class="secondary" onclick="loadSensors()">Odswiez</button></div></div>
+            <div class="section-head"><h2 data-i18n="sensors">Czujniki</h2><div class="toolbar"><button class="secondary" onclick="loadSensors()" data-i18n="refresh">Odswiez</button></div></div>
             <div class="section-body"><div class="metric-grid" id="sensorOverview"></div></div>
           </div>
         </section>
 
         <section class="page" id="network">
           <div class="card">
-            <div class="section-head"><h2>Interfejsy sieciowe</h2></div>
+            <div class="section-head"><h2 data-i18n="networkInterfaces">Interfejsy sieciowe</h2></div>
             <div class="section-body">
-              <div class="notice" id="restartNotice"><span>Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.</span><button class="secondary" onclick="restartDevice()">Restart</button></div>
+              <div class="notice" id="restartNotice"><span data-i18n="restartNotice">Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.</span><button class="secondary" onclick="restartDevice()" data-i18n="restart">Restart</button></div>
               <div class="grid">
               <label class="field wide"><span class="label">Host</span><input id="host"></label>
-              <label class="field wide"><span class="label">Tryb</span><select id="net_mode"><option value="0">Ethernet</option><option value="1">WiFi STA</option><option value="2">WiFi AP</option><option value="3">Ethernet + AP</option></select></label>
-              <label class="field"><span class="label">DHCP</span><select id="dhcp"><option value="1">Tak</option><option value="0">Statyczny</option></select></label>
+              <label class="field wide"><span class="label" data-i18n="mode">Tryb</span><select id="net_mode"><option value="0">Ethernet</option><option value="1">WiFi STA</option><option value="2">WiFi AP</option><option value="3">Ethernet + AP</option></select></label>
+              <label class="field"><span class="label">DHCP</span><select id="dhcp"><option value="1" data-i18n="yes">Tak</option><option value="0" data-i18n="static">Statyczny</option></select></label>
               <label class="field"><span class="label">IP</span><input id="ip"></label>
-              <label class="field"><span class="label">Brama</span><input id="gateway"></label>
-              <label class="field"><span class="label">Maska</span><input id="subnet"></label>
+              <label class="field"><span class="label" data-i18n="gateway">Brama</span><input id="gateway"></label>
+              <label class="field"><span class="label" data-i18n="subnet">Maska</span><input id="subnet"></label>
               <label class="field"><span class="label">DNS</span><input id="dns"></label>
               <label class="field wide"><span class="label">WiFi STA SSID</span><input id="sta_ssid"></label>
-              <label class="field wide"><span class="label">WiFi STA haslo</span><input id="sta_pass" type="password"></label>
+              <label class="field wide"><span class="label" data-i18n="wifiStaPass">WiFi STA haslo</span><input id="sta_pass" type="password"></label>
               <label class="field wide"><span class="label">AP SSID</span><input id="ap_ssid"></label>
-              <label class="field wide"><span class="label">AP haslo</span><input id="ap_pass" type="password"></label>
-              <label class="field wide"><span class="label">ESP-NOW po WiFi</span><select id="espnow_enabled"><option value="0">Wylaczony</option><option value="1">Wlaczony</option></select></label>
-              <label class="field"><span class="label">Kanal ESP-NOW</span><input id="espnow_channel" type="number" min="1" max="13"></label>
+              <label class="field wide"><span class="label" data-i18n="apPass">AP haslo</span><input id="ap_pass" type="password"></label>
+              <label class="field wide"><span class="label" data-i18n="espnowWifi">ESP-NOW po WiFi</span><select id="espnow_enabled"><option value="0" data-i18n="disabled">Wylaczony</option><option value="1" data-i18n="enabled">Wlaczony</option></select></label>
+              <label class="field"><span class="label" data-i18n="espnowChannel">Kanal ESP-NOW</span><input id="espnow_channel" type="number" min="1" max="13"></label>
               <label class="field wide"><span class="label">Peer MAC</span><input id="espnow_peer" placeholder="FF:FF:FF:FF:FF:FF"></label>
               <label class="field wide"><span class="label">Topic RX ESP-NOW</span><input id="espnow_rx_topic"></label>
               <label class="field wide"><span class="label">Topic TX ESP-NOW</span><input id="espnow_tx_topic"></label>
@@ -394,15 +396,15 @@
           <div class="card">
             <div class="section-head"><h2>MQTT</h2></div>
             <div class="section-body grid">
-              <label class="field wide"><span class="label">Tryb</span><select id="mqtt_mode"><option value="0">Wylaczony</option><option value="1">Klient esp-mqtt</option><option value="2">Broker Espressif Mosquitto</option></select></label>
-              <label class="field client-mqtt"><span class="label">Adres brokera MQTT</span><input id="mqtt_host"></label>
-              <label class="field client-mqtt"><span class="label">Port brokera MQTT</span><input id="mqtt_port" type="number"></label>
-              <label class="field client-mqtt"><span class="label">Uzytkownik klienta</span><input id="mqtt_user"></label>
-              <label class="field client-mqtt"><span class="label">Haslo klienta</span><input id="mqtt_pass" type="password"></label>
+              <label class="field wide"><span class="label" data-i18n="mode">Tryb</span><select id="mqtt_mode"><option value="0" data-i18n="disabled">Wylaczony</option><option value="1" data-i18n="mqttClient">Klient esp-mqtt</option><option value="2" data-i18n="mqttBroker">Broker Espressif Mosquitto</option></select></label>
+              <label class="field client-mqtt"><span class="label" data-i18n="mqttBrokerAddress">Adres brokera MQTT</span><input id="mqtt_host"></label>
+              <label class="field client-mqtt"><span class="label" data-i18n="mqttBrokerPort">Port brokera MQTT</span><input id="mqtt_port" type="number"></label>
+              <label class="field client-mqtt"><span class="label" data-i18n="mqttClientUser">Uzytkownik klienta</span><input id="mqtt_user"></label>
+              <label class="field client-mqtt"><span class="label" data-i18n="mqttClientPass">Haslo klienta</span><input id="mqtt_pass" type="password"></label>
               <label class="field wide"><span class="label">Base topic</span><input id="base_topic"></label>
-              <label class="field broker-mqtt"><span class="label">Port lokalnego brokera</span><input id="broker_port" type="number" min="1" max="65535"></label>
-              <label class="field broker-mqtt"><span class="label">Login do lokalnego brokera</span><input id="broker_user"></label>
-              <label class="field broker-mqtt"><span class="label">Haslo do lokalnego brokera</span><input id="broker_pass" type="password"></label>
+              <label class="field broker-mqtt"><span class="label" data-i18n="localBrokerPort">Port lokalnego brokera</span><input id="broker_port" type="number" min="1" max="65535"></label>
+              <label class="field broker-mqtt"><span class="label" data-i18n="localBrokerLogin">Login do lokalnego brokera</span><input id="broker_user"></label>
+              <label class="field broker-mqtt"><span class="label" data-i18n="localBrokerPass">Haslo do lokalnego brokera</span><input id="broker_pass" type="password"></label>
             </div>
           </div>
         </section>
@@ -412,13 +414,13 @@
             <div class="section-head">
               <h2>MQTT Explorer</h2>
               <div class="toolbar">
-                <button class="secondary" id="pauseExplorerBtn">Pauza</button>
-                <button class="secondary" onclick="loadMessages()">Odswiez</button>
-                <button class="danger" onclick="clearMessages()">Wyczysc</button>
+                <button class="secondary" id="pauseExplorerBtn" data-i18n="pause">Pauza</button>
+                <button class="secondary" onclick="loadMessages()" data-i18n="refresh">Odswiez</button>
+                <button class="danger" onclick="clearMessages()" data-i18n="clear">Wyczysc</button>
               </div>
             </div>
             <div class="section-body">
-              <div class="notice show" id="explorerNotice"><span>Pokazuje ostatnie publikacje odebrane przez lokalny broker Mosquitto.</span></div>
+              <div class="notice show" id="explorerNotice"><span data-i18n="explorerInitial">Pokazuje ostatnie publikacje odebrane przez lokalny broker Mosquitto.</span></div>
               <div class="explorer" id="mqttMessages"></div>
             </div>
           </div>
@@ -427,11 +429,11 @@
         <section class="page" id="modbus">
           <div class="card">
             <div class="section-head">
-              <h2>Mapowanie Modbus TCP</h2>
-              <div class="toolbar"><button class="secondary" onclick="addModbusRule()">Dodaj</button></div>
+              <h2 data-i18n="modbusMapping">Mapowanie Modbus TCP</h2>
+              <div class="toolbar"><button class="secondary" onclick="addModbusRule()" data-i18n="add">Dodaj</button></div>
             </div>
             <div class="section-body">
-              <div class="modbus-head"><span>Aktywne</span><span>Kierunek</span><span>Topic</span><span>Host</span><span>Port</span><span>Unit</span><span>Rejestr</span><span>Poll ms</span><span>Ostatnio</span><span></span></div>
+              <div class="modbus-head"><span data-i18n="active">Aktywne</span><span data-i18n="direction">Kierunek</span><span>Topic</span><span>Host</span><span>Port</span><span>Unit</span><span data-i18n="register">Rejestr</span><span>Poll ms</span><span data-i18n="last">Ostatnio</span><span></span></div>
               <div id="modbusRules"></div>
             </div>
           </div>
@@ -440,11 +442,11 @@
         <section class="page" id="sensors">
           <div class="card">
             <div class="section-head">
-              <h2>Czujniki smarthome</h2>
-              <div class="toolbar"><button class="secondary" onclick="addSensorRule()">Dodaj</button></div>
+              <h2 data-i18n="smarthomeSensors">Czujniki smarthome</h2>
+              <div class="toolbar"><button class="secondary" onclick="addSensorRule()" data-i18n="add">Dodaj</button></div>
             </div>
             <div class="section-body">
-              <div class="notice show"><span>DS18B20 i DHT uzywaja pola GPIO data. BME280/SHT3x uzywaja SDA/SCL oraz adresu I2C.</span></div>
+              <div class="notice show"><span data-i18n="sensorNotice">DS18B20 i DHT uzywaja pola GPIO data. BME280/SHT3x uzywaja SDA/SCL oraz adresu I2C.</span></div>
               <div id="sensorRules"></div>
             </div>
           </div>
@@ -453,11 +455,11 @@
         <section class="page" id="gpio">
           <div class="card">
             <div class="section-head">
-              <h2>Mapowanie topicow na GPIO</h2>
-              <div class="toolbar"><button class="secondary" onclick="addRule()">Dodaj</button></div>
+              <h2 data-i18n="gpioMapping">Mapowanie topicow na GPIO</h2>
+              <div class="toolbar"><button class="secondary" onclick="addRule()" data-i18n="add">Dodaj</button></div>
             </div>
             <div class="section-body">
-              <div class="rule-head"><span>Aktywne</span><span>GPIO</span><span>Topic SET</span><span>Nazwa</span><span>Logika</span><span></span></div>
+              <div class="rule-head"><span data-i18n="active">Aktywne</span><span>GPIO</span><span>Topic SET</span><span data-i18n="name">Nazwa</span><span data-i18n="logic">Logika</span><span></span></div>
               <div id="rules"></div>
             </div>
           </div>
@@ -468,11 +470,90 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const ids = ['host','net_mode','dhcp','ip','gateway','subnet','dns','sta_ssid','sta_pass','ap_ssid','ap_pass','espnow_enabled','espnow_channel','espnow_peer','espnow_rx_topic','espnow_tx_topic','mqtt_mode','mqtt_host','mqtt_port','mqtt_user','mqtt_pass','base_topic','broker_port','broker_user','broker_pass'];
+    const i18n = {
+      pl: {
+        loading: 'ladowanie...', save: 'Zapisz', restart: 'Restart', refresh: 'Odswiez',
+        add: 'Dodaj', clear: 'Wyczysc', pause: 'Pauza', resume: 'Wznow', delete: 'Usun',
+        yes: 'Tak', no: 'Nie', static: 'Statyczny', enabled: 'Wlaczony', disabled: 'Wylaczony',
+        tabStatus: 'Status', tabNetwork: 'Siec', tabSensors: 'Czujniki',
+        runtimeStatus: 'Status runtime', sensors: 'Czujniki', networkInterfaces: 'Interfejsy sieciowe',
+        restartNotice: 'Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.',
+        mode: 'Tryb', gateway: 'Brama', subnet: 'Maska', wifiStaPass: 'WiFi STA haslo',
+        apPass: 'AP haslo', espnowWifi: 'ESP-NOW po WiFi', espnowChannel: 'Kanal ESP-NOW',
+        mqttClient: 'Klient esp-mqtt', mqttBroker: 'Broker Espressif Mosquitto',
+        mqttBrokerAddress: 'Adres brokera MQTT', mqttBrokerPort: 'Port brokera MQTT',
+        mqttClientUser: 'Uzytkownik klienta', mqttClientPass: 'Haslo klienta',
+        localBrokerPort: 'Port lokalnego brokera', localBrokerLogin: 'Login do lokalnego brokera',
+        localBrokerPass: 'Haslo do lokalnego brokera', explorerInitial: 'Pokazuje ostatnie publikacje odebrane przez lokalny broker Mosquitto.',
+        active: 'Aktywne', direction: 'Kierunek', register: 'Rejestr', last: 'Ostatnio',
+        modbusMapping: 'Mapowanie Modbus TCP',
+        smarthomeSensors: 'Czujniki smarthome', sensorNotice: 'DS18B20 i DHT uzywaja pola GPIO data. BME280/SHT3x uzywaja SDA/SCL oraz adresu I2C.',
+        gpioMapping: 'Mapowanie topicow na GPIO', name: 'Nazwa', logic: 'Logika',
+        normal: 'Normalna', inverted: 'Odwrocona', brokerActive: 'Broker aktywny na porcie',
+        brokerInactive: 'Broker nieaktywny', lastMessages: 'ostatnie', messages: 'wiadomosci',
+        noMessages: 'Brak wiadomosci', noSensors: 'Brak aktywnych czujnikow',
+        savedRestart: 'Zapisano. Siec wymaga restartu.', savedApplied: 'Zapisano i zastosowano.',
+        restarting: 'Restartuje urzadzenie', explorerCleared: 'Explorer wyczyszczony',
+        addressNotFound: 'Nie znaleziono adresu', sensorNameFallback: 'Sensor',
+        topicToReg: 'Topic -> reg', regToTopic: 'Reg -> topic', both: 'Oba',
+        type: 'Typ', workName: 'Nazwa robocza', gpioData: 'GPIO data', i2cAddress: 'Adres I2C',
+        dsRom: 'ROM DS18B20', intervalMs: 'Interwal ms', tempUnit: 'Jedn. temp.',
+        pressUnit: 'Jedn. cisn.', resolution: 'Rozdzielczosc', tempOffset: 'Offset temp. C',
+        humOffset: 'Offset wilg. %', pressOffset: 'Offset cisn. hPa', scanAddress: 'Skanuj adres',
+        high: 'wysoka', medium: 'srednia', low: 'niska', standard: 'standard'
+      },
+      en: {
+        loading: 'loading...', save: 'Save', restart: 'Restart', refresh: 'Refresh',
+        add: 'Add', clear: 'Clear', pause: 'Pause', resume: 'Resume', delete: 'Delete',
+        yes: 'Yes', no: 'No', static: 'Static', enabled: 'Enabled', disabled: 'Disabled',
+        tabStatus: 'Status', tabNetwork: 'Network', tabSensors: 'Sensors',
+        runtimeStatus: 'Runtime status', sensors: 'Sensors', networkInterfaces: 'Network interfaces',
+        restartNotice: 'Network changes were saved, but require a restart.',
+        mode: 'Mode', gateway: 'Gateway', subnet: 'Subnet', wifiStaPass: 'WiFi STA password',
+        apPass: 'AP password', espnowWifi: 'ESP-NOW over WiFi', espnowChannel: 'ESP-NOW channel',
+        mqttClient: 'esp-mqtt client', mqttBroker: 'Espressif Mosquitto broker',
+        mqttBrokerAddress: 'MQTT broker address', mqttBrokerPort: 'MQTT broker port',
+        mqttClientUser: 'Client username', mqttClientPass: 'Client password',
+        localBrokerPort: 'Local broker port', localBrokerLogin: 'Local broker login',
+        localBrokerPass: 'Local broker password', explorerInitial: 'Shows recent publications received by the local Mosquitto broker.',
+        active: 'Active', direction: 'Direction', register: 'Register', last: 'Last',
+        modbusMapping: 'Modbus TCP mapping',
+        smarthomeSensors: 'Smarthome sensors', sensorNotice: 'DS18B20 and DHT use GPIO data. BME280/SHT3x use SDA/SCL and I2C address.',
+        gpioMapping: 'Topic to GPIO mapping', name: 'Name', logic: 'Logic',
+        normal: 'Normal', inverted: 'Inverted', brokerActive: 'Broker active on port',
+        brokerInactive: 'Broker inactive', lastMessages: 'last', messages: 'messages',
+        noMessages: 'No messages', noSensors: 'No active sensors',
+        savedRestart: 'Saved. Network requires restart.', savedApplied: 'Saved and applied.',
+        restarting: 'Restarting device', explorerCleared: 'Explorer cleared',
+        addressNotFound: 'Address not found', sensorNameFallback: 'Sensor',
+        topicToReg: 'Topic -> register', regToTopic: 'Register -> topic', both: 'Both',
+        type: 'Type', workName: 'Working name', gpioData: 'GPIO data', i2cAddress: 'I2C address',
+        dsRom: 'DS18B20 ROM', intervalMs: 'Interval ms', tempUnit: 'Temp unit',
+        pressUnit: 'Pressure unit', resolution: 'Resolution', tempOffset: 'Temp offset C',
+        humOffset: 'Humidity offset %', pressOffset: 'Pressure offset hPa', scanAddress: 'Scan address',
+        high: 'high', medium: 'medium', low: 'low', standard: 'standard'
+      }
+    };
+    const ids = ['ui_lang','host','net_mode','dhcp','ip','gateway','subnet','dns','sta_ssid','sta_pass','ap_ssid','ap_pass','espnow_enabled','espnow_channel','espnow_peer','espnow_rx_topic','espnow_tx_topic','mqtt_mode','mqtt_host','mqtt_port','mqtt_user','mqtt_pass','base_topic','broker_port','broker_user','broker_pass'];
     let cfg = { rules: [], modbus_tcp: [], sensors: [] };
     let explorerPaused = false;
     const safeSensorGpios = [13, 14, 16, 17, 32, 33];
     const $ = id => document.getElementById(id);
+
+    function lang() {
+      return Number(cfg.ui_lang || 0) === 1 ? 'en' : 'pl';
+    }
+
+    function t(key) {
+      return (i18n[lang()] && i18n[lang()][key]) || i18n.pl[key] || key;
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = lang();
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+      $('refreshBtn').title = t('refresh');
+      $('pauseExplorerBtn').textContent = explorerPaused ? t('resume') : t('pause');
+    }
 
     function toast(text) {
       const el = $('toast');
@@ -501,8 +582,10 @@
     async function loadCfg() {
       cfg = await (await fetch('/api/config')).json();
       ids.forEach(id => setField(id, cfg[id]));
+      $('ui_lang').value = String(cfg.ui_lang || 0);
       $('dhcp').value = cfg.dhcp ? '1' : '0';
       $('espnow_enabled').value = cfg.espnow_enabled ? '1' : '0';
+      applyLanguage();
       updateMqttVisibility();
       renderRules();
       renderModbusRules();
@@ -540,8 +623,8 @@
         if (s.has_temp) values.push(`${Number(s.last_temp).toFixed(1)}${s.temperature_unit_label || 'C'}`);
         if (s.has_hum) values.push(`${Number(s.last_hum).toFixed(0)}%`);
         if (s.has_press) values.push(`${Number(s.last_press).toFixed(0)}${s.pressure_unit_label || 'hPa'}`);
-        return `<div class="metric"><span class="label">${s.name || 'Sensor'}</span><b>${values.length ? values.join(' / ') : '-'}</b><span class="label">${s.topic || ''}</span></div>`;
-      }).join('') : '<div class="metric"><span class="label">Brak aktywnych czujnikow</span><b>-</b></div>';
+        return `<div class="metric"><span class="label">${s.name || t('sensorNameFallback')}</span><b>${values.length ? values.join(' / ') : '-'}</b><span class="label">${s.topic || ''}</span></div>`;
+      }).join('') : `<div class="metric"><span class="label">${t('noSensors')}</span><b>-</b></div>`;
     }
 
     function renderRules() {
@@ -551,12 +634,12 @@
         const row = document.createElement('div');
         row.className = 'rule';
         row.innerHTML = `
-          <select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select>
+          <select data-i="${i}" data-k="enabled"><option value="1">${t('yes')}</option><option value="0">${t('no')}</option></select>
           <input data-i="${i}" data-k="pin" type="number" min="0" max="39">
           <input class="topic-cell" data-i="${i}" data-k="topic">
           <input data-i="${i}" data-k="name">
-          <select data-i="${i}" data-k="inverted"><option value="0">Normalna</option><option value="1">Odwrocona</option></select>
-          <div class="rule-actions"><button class="secondary" onclick="pulse(${i},1)">ON</button><button class="secondary" onclick="pulse(${i},0)">OFF</button><button class="danger icon" title="Usun" onclick="delRule(${i})">x</button></div>`;
+          <select data-i="${i}" data-k="inverted"><option value="0">${t('normal')}</option><option value="1">${t('inverted')}</option></select>
+          <div class="rule-actions"><button class="secondary" onclick="pulse(${i},1)">ON</button><button class="secondary" onclick="pulse(${i},0)">OFF</button><button class="danger icon" title="${t('delete')}" onclick="delRule(${i})">x</button></div>`;
         el.appendChild(row);
         ['enabled','pin','topic','name','inverted'].forEach(k => {
           const n = row.querySelector(`[data-k="${k}"]`);
@@ -590,8 +673,8 @@
         const row = document.createElement('div');
         row.className = 'modbus-rule';
         row.innerHTML = `
-          <select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select>
-          <select data-i="${i}" data-k="direction"><option value="0">Topic -> reg</option><option value="1">Reg -> topic</option><option value="2">Oba</option></select>
+          <select data-i="${i}" data-k="enabled"><option value="1">${t('yes')}</option><option value="0">${t('no')}</option></select>
+          <select data-i="${i}" data-k="direction"><option value="0">${t('topicToReg')}</option><option value="1">${t('regToTopic')}</option><option value="2">${t('both')}</option></select>
           <input class="mb-topic" data-i="${i}" data-k="topic">
           <input class="mb-host" data-i="${i}" data-k="host">
           <input data-i="${i}" data-k="port" type="number" min="1" max="65535">
@@ -599,7 +682,7 @@
           <input data-i="${i}" data-k="reg" type="number" min="0" max="65535">
           <input data-i="${i}" data-k="poll_ms" type="number" min="200" step="100">
           <span class="badge">${r.has_value ? r.last_value : '-'}</span>
-          <button class="danger icon" title="Usun" onclick="delModbusRule(${i})">x</button>`;
+          <button class="danger icon" title="${t('delete')}" onclick="delModbusRule(${i})">x</button>`;
         el.appendChild(row);
         ['enabled','direction','topic','host','port','unit','reg','poll_ms'].forEach(k => {
           const n = row.querySelector(`[data-k="${k}"]`);
@@ -657,8 +740,8 @@
       const v = Number(value);
       if (type === 0) return [9,10,11,12].map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${x} bit</option>`).join('');
       if (type === 1) return [1,2,4,8,16].map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>oversampling x${x}</option>`).join('');
-      if (type === 2) return [['0','high'],['1','medium'],['2','low']].map(([x,t]) => `<option value="${x}" ${String(v) === x ? 'selected' : ''}>${t}</option>`).join('');
-      return `<option value="1">standard</option>`;
+      if (type === 2) return [['0',t('high')],['1',t('medium')],['2',t('low')]].map(([x,label]) => `<option value="${x}" ${String(v) === x ? 'selected' : ''}>${label}</option>`).join('');
+      return `<option value="1">${t('standard')}</option>`;
     }
 
     function renderSensorRules() {
@@ -673,25 +756,25 @@
         const row = document.createElement('div');
         row.className = 'sensor-rule';
         row.innerHTML = `
-          <label><span class="label">Aktywne</span><select data-i="${i}" data-k="enabled"><option value="1">Tak</option><option value="0">Nie</option></select></label>
-          <label><span class="label">Typ</span><select data-i="${i}" data-k="type"><option value="0">DS18B20</option><option value="1">BME280</option><option value="2">SHT3x/SHT30/SHT31</option><option value="3">DHT22/AM2302</option><option value="4">DHT11</option></select></label>
-          <label class="sensor-name"><span class="label">Nazwa robocza</span><input data-i="${i}" data-k="name"></label>
+          <label><span class="label">${t('active')}</span><select data-i="${i}" data-k="enabled"><option value="1">${t('yes')}</option><option value="0">${t('no')}</option></select></label>
+          <label><span class="label">${t('type')}</span><select data-i="${i}" data-k="type"><option value="0">DS18B20</option><option value="1">BME280</option><option value="2">SHT3x/SHT30/SHT31</option><option value="3">DHT22/AM2302</option><option value="4">DHT11</option></select></label>
+          <label class="sensor-name"><span class="label">${t('workName')}</span><input data-i="${i}" data-k="name"></label>
           <label class="sensor-topic"><span class="label">Topic</span><input data-i="${i}" data-k="topic"></label>
-          ${usesDataPin ? `<label><span class="label">GPIO data</span><select data-i="${i}" data-k="pin">${gpioOptions(r.pin)}</select></label>` : ''}
+          ${usesDataPin ? `<label><span class="label">${t('gpioData')}</span><select data-i="${i}" data-k="pin">${gpioOptions(r.pin)}</select></label>` : ''}
           ${usesI2c ? `<label><span class="label">SDA</span><select data-i="${i}" data-k="sda">${gpioOptions(r.sda)}</select></label>
           <label><span class="label">SCL</span><select data-i="${i}" data-k="scl">${gpioOptions(r.scl)}</select></label>
-          <label><span class="label">Adres I2C</span><input data-i="${i}" data-k="addr"></label>` : ''}
-          ${usesOneWire ? `<label><span class="label">ROM DS18B20</span><input data-i="${i}" data-k="rom"></label>` : ''}
-          <label><span class="label">Interwal ms</span><input data-i="${i}" data-k="poll_ms" type="number" min="1000" step="1000"></label>
-          <label><span class="label">Jedn. temp.</span><select data-i="${i}" data-k="temp_unit"><option value="0">C</option><option value="1">F</option><option value="2">K</option></select></label>
-          ${type === 1 ? `<label><span class="label">Jedn. cisn.</span><select data-i="${i}" data-k="press_unit"><option value="0">hPa</option><option value="1">Pa</option><option value="2">kPa</option><option value="3">bar</option></select></label>` : ''}
-          <label class="sensor-wide"><span class="label">Rozdzielczosc</span><select data-i="${i}" data-k="resolution">${resolutionOptions(type, r.resolution)}</select></label>
-          <label><span class="label">Offset temp. C</span><input data-i="${i}" data-k="temp_offset" type="number" step="0.1"></label>
-          ${(type === 1 || type === 2 || type === 3 || type === 4) ? `<label><span class="label">Offset wilg. %</span><input data-i="${i}" data-k="hum_offset" type="number" step="0.1"></label>` : ''}
-          ${type === 1 ? `<label><span class="label">Offset cisn. hPa</span><input data-i="${i}" data-k="press_offset" type="number" step="0.1"></label>` : ''}
+          <label><span class="label">${t('i2cAddress')}</span><input data-i="${i}" data-k="addr"></label>` : ''}
+          ${usesOneWire ? `<label><span class="label">${t('dsRom')}</span><input data-i="${i}" data-k="rom"></label>` : ''}
+          <label><span class="label">${t('intervalMs')}</span><input data-i="${i}" data-k="poll_ms" type="number" min="1000" step="1000"></label>
+          <label><span class="label">${t('tempUnit')}</span><select data-i="${i}" data-k="temp_unit"><option value="0">C</option><option value="1">F</option><option value="2">K</option></select></label>
+          ${type === 1 ? `<label><span class="label">${t('pressUnit')}</span><select data-i="${i}" data-k="press_unit"><option value="0">hPa</option><option value="1">Pa</option><option value="2">kPa</option><option value="3">bar</option></select></label>` : ''}
+          <label class="sensor-wide"><span class="label">${t('resolution')}</span><select data-i="${i}" data-k="resolution">${resolutionOptions(type, r.resolution)}</select></label>
+          <label><span class="label">${t('tempOffset')}</span><input data-i="${i}" data-k="temp_offset" type="number" step="0.1"></label>
+          ${(type === 1 || type === 2 || type === 3 || type === 4) ? `<label><span class="label">${t('humOffset')}</span><input data-i="${i}" data-k="hum_offset" type="number" step="0.1"></label>` : ''}
+          ${type === 1 ? `<label><span class="label">${t('pressOffset')}</span><input data-i="${i}" data-k="press_offset" type="number" step="0.1"></label>` : ''}
           <span class="badge">${sensorLastText(r)}</span>
-          ${(usesI2c || usesOneWire) ? `<button class="secondary icon" title="Skanuj adres" onclick="scanSensor(${i})">?</button>` : ''}
-          <button class="danger icon" title="Usun" onclick="delSensorRule(${i})">x</button>`;
+          ${(usesI2c || usesOneWire) ? `<button class="secondary icon" title="${t('scanAddress')}" onclick="scanSensor(${i})">?</button>` : ''}
+          <button class="danger icon" title="${t('delete')}" onclick="delSensorRule(${i})">x</button>`;
         el.appendChild(row);
         ['enabled','type','name','topic','pin','sda','scl','addr','rom','poll_ms','resolution','temp_unit','press_unit','temp_offset','hum_offset','press_offset'].forEach(k => {
           const n = row.querySelector(`[data-k="${k}"]`);
@@ -726,7 +809,7 @@
         body: JSON.stringify(sensor)
       })).json();
       if (!res.ok) {
-        toast(res.error || 'Nie znaleziono adresu');
+        toast(res.error || t('addressNotFound'));
         return;
       }
       if (res.rom) {
@@ -775,6 +858,7 @@
 
     async function save() {
       ids.forEach(id => cfg[id] = $(id).value);
+      cfg.ui_lang = Number(cfg.ui_lang || 0);
       cfg.net_mode = Number(cfg.net_mode);
       cfg.dhcp = $('dhcp').value === '1';
       cfg.espnow_enabled = $('espnow_enabled').value === '1';
@@ -783,7 +867,7 @@
       cfg.mqtt_port = Number(cfg.mqtt_port);
       cfg.broker_port = Number(cfg.broker_port || 1883);
       const res = await (await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) })).json();
-      toast(res.restart_required ? 'Zapisano. Siec wymaga restartu.' : 'Zapisano i zastosowano.');
+      toast(res.restart_required ? t('savedRestart') : t('savedApplied'));
       await loadStatus();
       await loadSensors();
       await loadMessages();
@@ -791,24 +875,24 @@
 
     async function restartDevice() {
       await fetch('/api/restart', { method: 'POST' });
-      toast('Restartuje urzadzenie');
+      toast(t('restarting'));
     }
 
     async function loadMessages() {
       if (explorerPaused) return;
       const data = await (await fetch('/api/mqtt/messages')).json();
       const rows = data.messages || [];
-      $('explorerNotice').innerHTML = `<span>${data.broker_running ? `Broker aktywny na porcie ${data.broker_port}` : 'Broker nieaktywny'} - ostatnie ${rows.length} wiadomosci.</span>`;
+      $('explorerNotice').innerHTML = `<span>${data.broker_running ? `${t('brokerActive')} ${data.broker_port}` : t('brokerInactive')} - ${t('lastMessages')} ${rows.length} ${t('messages')}.</span>`;
       $('mqttMessages').innerHTML = rows.length ? rows.slice().reverse().map(m => {
         const age = Math.max(0, Math.round((Date.now() - performance.timeOrigin - m.at_ms) / 1000));
         return `<div class="msg"><span class="badge">#${m.seq}</span><span>${m.client || '-'}</span><code class="topic">${m.topic}</code><code class="payload">${m.payload || ''}</code><span class="badge">q${m.qos}${m.retain ? ' R' : ''} ${m.len}B</span></div>`;
-      }).join('') : '<div class="metric"><span class="label">Brak wiadomosci</span><b>MQTT Explorer</b></div>';
+      }).join('') : `<div class="metric"><span class="label">${t('noMessages')}</span><b>MQTT Explorer</b></div>`;
     }
 
     async function clearMessages() {
       await fetch('/api/mqtt/messages', { method: 'DELETE' });
       await loadMessages();
-      toast('Explorer wyczyszczony');
+      toast(t('explorerCleared'));
     }
 
     async function loadAll() {
@@ -821,9 +905,18 @@
     $('refreshBtn').addEventListener('click', loadAll);
     $('restartBtn').addEventListener('click', restartDevice);
     $('mqtt_mode').addEventListener('change', updateMqttVisibility);
+    $('ui_lang').addEventListener('change', () => {
+      cfg.ui_lang = Number($('ui_lang').value || 0);
+      applyLanguage();
+      renderRules();
+      renderModbusRules();
+      renderSensorRules();
+      loadSensors();
+      loadMessages();
+    });
     $('pauseExplorerBtn').addEventListener('click', () => {
       explorerPaused = !explorerPaused;
-      $('pauseExplorerBtn').textContent = explorerPaused ? 'Wznow' : 'Pauza';
+      $('pauseExplorerBtn').textContent = explorerPaused ? t('resume') : t('pause');
     });
     bindTabs();
     loadAll();
