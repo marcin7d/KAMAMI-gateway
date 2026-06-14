@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
+#include "esp_ota_ops.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -1279,6 +1280,18 @@ static esp_err_t config_get(httpd_req_t *req)
     return ret;
 }
 
+static esp_err_t config_export_get(httpd_req_t *req)
+{
+    cJSON *root = config_to_json();
+    char *json = cJSON_Print(root);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"kamami_gateway_config.json\"");
+    esp_err_t ret = httpd_resp_sendstr(req, json);
+    free(json);
+    cJSON_Delete(root);
+    return ret;
+}
+
 static esp_err_t config_post(httpd_req_t *req)
 {
     char *buf = calloc(1, req->content_len + 1);
@@ -1298,6 +1311,41 @@ static esp_err_t config_post(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t config_import_post(httpd_req_t *req)
+{
+    if (req->content_len <= 0 || req->content_len > 32768) {
+        httpd_resp_set_status(req, "413 Payload Too Large");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"invalid_size\"}");
+    }
+    char *buf = calloc(1, req->content_len + 1);
+    if (!buf) return ESP_ERR_NO_MEM;
+    int got = 0;
+    while (got < req->content_len) {
+        int r = httpd_req_recv(req, buf + got, req->content_len - got);
+        if (r <= 0) {
+            free(buf);
+            return ESP_FAIL;
+        }
+        got += r;
+    }
+    cJSON *test = cJSON_Parse(buf);
+    if (!test) {
+        free(buf);
+        httpd_resp_set_status(req, "400 Bad Request");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"invalid_json\"}");
+    }
+    cJSON_Delete(test);
+    gateway_config_t old_cfg = g_cfg;
+    parse_config_json(buf);
+    save_config();
+    apply_runtime_config(&old_cfg);
+    free(buf);
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, g_network_restart_required ? "{\"ok\":true,\"restart_required\":true}" : "{\"ok\":true,\"restart_required\":false}");
+}
+
 static esp_err_t restart_post(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -1305,6 +1353,72 @@ static esp_err_t restart_post(httpd_req_t *req)
     vTaskDelay(pdMS_TO_TICKS(200));
     esp_restart();
     return ESP_OK;
+}
+
+static esp_err_t ota_post(httpd_req_t *req)
+{
+    const esp_partition_t *partition = esp_ota_get_next_update_partition(NULL);
+    if (!partition) {
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"no_ota_partition\"}");
+    }
+    if (req->content_len <= 0 || req->content_len > (int)partition->size) {
+        httpd_resp_set_status(req, "413 Payload Too Large");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"invalid_size\"}");
+    }
+
+    esp_ota_handle_t handle = 0;
+    esp_err_t err = esp_ota_begin(partition, OTA_WITH_SEQUENTIAL_WRITES, &handle);
+    if (err != ESP_OK) {
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"ota_begin\"}");
+    }
+
+    char *buf = malloc(4096);
+    if (!buf) {
+        esp_ota_abort(handle);
+        return ESP_ERR_NO_MEM;
+    }
+
+    int remaining = req->content_len;
+    while (remaining > 0) {
+        int chunk = remaining > 4096 ? 4096 : remaining;
+        int got = httpd_req_recv(req, buf, chunk);
+        if (got <= 0) {
+            free(buf);
+            esp_ota_abort(handle);
+            return ESP_FAIL;
+        }
+        err = esp_ota_write(handle, buf, got);
+        if (err != ESP_OK) {
+            free(buf);
+            esp_ota_abort(handle);
+            httpd_resp_set_status(req, "500 Internal Server Error");
+            httpd_resp_set_type(req, "application/json");
+            return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"ota_write\"}");
+        }
+        remaining -= got;
+    }
+    free(buf);
+
+    err = esp_ota_end(handle);
+    if (err != ESP_OK) {
+        httpd_resp_set_status(req, "400 Bad Request");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"ota_end\"}");
+    }
+    err = esp_ota_set_boot_partition(partition);
+    if (err != ESP_OK) {
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"ok\":false,\"error\":\"set_boot_partition\"}");
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, "{\"ok\":true,\"restart_required\":true}");
 }
 
 static esp_err_t status_get(httpd_req_t *req)
@@ -1326,6 +1440,10 @@ static esp_err_t status_get(httpd_req_t *req)
     cJSON_AddStringToObject(root, "mqtt", mqtt_status);
     cJSON_AddNumberToObject(root, "broker_port", g_cfg.broker_port);
     cJSON_AddBoolToObject(root, "restart_required", g_network_restart_required);
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_t *next = esp_ota_get_next_update_partition(NULL);
+    if (running) cJSON_AddStringToObject(root, "ota_running", running->label);
+    if (next) cJSON_AddStringToObject(root, "ota_next", next->label);
     cJSON_AddNumberToObject(root, "free_heap", esp_get_free_heap_size());
     char *json = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
@@ -1487,11 +1605,15 @@ static esp_err_t sensors_get(httpd_req_t *req)
 static void start_http(void)
 {
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-    cfg.max_uri_handlers = 12;
+    cfg.max_uri_handlers = 15;
+    cfg.recv_wait_timeout = 30;
     ESP_ERROR_CHECK(httpd_start(&g_http, &cfg));
     httpd_uri_t root = { .uri = "/", .method = HTTP_GET, .handler = root_get };
     httpd_uri_t api_cfg_get = { .uri = "/api/config", .method = HTTP_GET, .handler = config_get };
     httpd_uri_t api_cfg_post = { .uri = "/api/config", .method = HTTP_POST, .handler = config_post };
+    httpd_uri_t api_cfg_export = { .uri = "/api/config/export", .method = HTTP_GET, .handler = config_export_get };
+    httpd_uri_t api_cfg_import = { .uri = "/api/config/import", .method = HTTP_POST, .handler = config_import_post };
+    httpd_uri_t api_ota = { .uri = "/api/ota", .method = HTTP_POST, .handler = ota_post };
     httpd_uri_t api_restart = { .uri = "/api/restart", .method = HTTP_POST, .handler = restart_post };
     httpd_uri_t api_status = { .uri = "/api/status", .method = HTTP_GET, .handler = status_get };
     httpd_uri_t api_gpio = { .uri = "/api/gpio", .method = HTTP_POST, .handler = gpio_post };
@@ -1502,6 +1624,9 @@ static void start_http(void)
     httpd_register_uri_handler(g_http, &root);
     httpd_register_uri_handler(g_http, &api_cfg_get);
     httpd_register_uri_handler(g_http, &api_cfg_post);
+    httpd_register_uri_handler(g_http, &api_cfg_export);
+    httpd_register_uri_handler(g_http, &api_cfg_import);
+    httpd_register_uri_handler(g_http, &api_ota);
     httpd_register_uri_handler(g_http, &api_restart);
     httpd_register_uri_handler(g_http, &api_status);
     httpd_register_uri_handler(g_http, &api_gpio);
@@ -1900,6 +2025,9 @@ void app_main(void)
 {
     g_boot_us = esp_timer_get_time();
     esp_log_level_set("*", ESP_LOG_INFO);
+#ifdef CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE
+    esp_ota_mark_app_valid_cancel_rollback();
+#endif
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());

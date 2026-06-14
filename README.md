@@ -32,6 +32,10 @@ Kompleksowa bramka ESP-IDF dla plytki KAmod ESP32 ETH+PoE. Projekt laczy lokalny
   - most MQTT -> ESP-NOW,
   - most ESP-NOW -> MQTT.
 - Konfiguracja Ethernet/WiFi/AP/STA.
+- Zakladka `System`:
+  - eksport konfiguracji JSON,
+  - import konfiguracji JSON,
+  - aktualizacja firmware OTA przez upload pliku `.bin`.
 
 ## Gotowy firmware
 
@@ -41,7 +45,9 @@ Gotowy obraz aplikacji znajduje sie w:
 firmware/kamami_gateway.bin
 ```
 
-Obraz jest budowany dla ESP32 i aktualnej konfiguracji partycji projektu. Do pelnego flashowania nowego ukladu najbezpieczniej uzyc `idf.py flash`, bo wgrywa rowniez bootloader i tablice partycji.
+Obraz jest budowany dla ESP32 i ukladu partycji OTA z dwoma slotami aplikacji. Do pierwszego flashowania albo po zmianie `partitions.csv` najbezpieczniej uzyc `idf.py flash`, bo wgrywa rowniez bootloader, `otadata` i tablice partycji.
+
+Po jednorazowym wgraniu ukladu OTA kolejne aktualizacje aplikacji mozna wykonywac z panelu WWW w zakladce `System`, wybierajac plik `.bin`.
 
 ## Domyslny start
 
@@ -161,4 +167,3 @@ Projekt korzysta z komponentow:
 - `espressif/mosquitto`
 - `espressif/mqtt`
 - `espressif/cjson`
-

@@ -349,6 +349,7 @@
           <button class="tab" data-page="explorer"><span>Explorer</span><span>&gt;</span></button>
           <button class="tab" data-page="modbus"><span>Modbus TCP</span><span>&gt;</span></button>
           <button class="tab" data-page="sensors"><span data-i18n="tabSensors">Czujniki</span><span>&gt;</span></button>
+          <button class="tab" data-page="system"><span data-i18n="tabSystem">System</span><span>&gt;</span></button>
           <button class="tab" data-page="gpio"><span>GPIO</span><span>&gt;</span></button>
         </nav>
       </aside>
@@ -452,6 +453,34 @@
           </div>
         </section>
 
+        <section class="page" id="system">
+          <div class="card">
+            <div class="section-head"><h2 data-i18n="systemTools">System</h2></div>
+            <div class="section-body">
+              <div class="grid">
+                <div class="field wide">
+                  <span class="label" data-i18n="backupRestore">Backup / restore konfiguracji</span>
+                  <div class="toolbar">
+                    <button class="secondary" onclick="downloadConfig()" data-i18n="exportConfig">Eksport JSON</button>
+                    <button class="secondary" onclick="$('configFile').click()" data-i18n="importConfig">Import JSON</button>
+                    <input class="hidden" id="configFile" type="file" accept="application/json,.json">
+                  </div>
+                </div>
+                <div class="field wide">
+                  <span class="label" data-i18n="otaUpdate">Aktualizacja firmware OTA</span>
+                  <input id="firmwareFile" type="file" accept=".bin,application/octet-stream">
+                </div>
+                <div class="field full">
+                  <div class="toolbar">
+                    <button onclick="uploadFirmware()" data-i18n="uploadFirmware">Wgraj firmware</button>
+                    <span class="badge" id="otaProgress">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="page" id="gpio">
           <div class="card">
             <div class="section-head">
@@ -475,7 +504,7 @@
         loading: 'ladowanie...', save: 'Zapisz', restart: 'Restart', refresh: 'Odswiez',
         add: 'Dodaj', clear: 'Wyczysc', pause: 'Pauza', resume: 'Wznow', delete: 'Usun',
         yes: 'Tak', no: 'Nie', static: 'Statyczny', enabled: 'Wlaczony', disabled: 'Wylaczony',
-        tabStatus: 'Status', tabNetwork: 'Siec', tabSensors: 'Czujniki',
+        tabStatus: 'Status', tabNetwork: 'Siec', tabSensors: 'Czujniki', tabSystem: 'System',
         runtimeStatus: 'Status runtime', sensors: 'Czujniki', networkInterfaces: 'Interfejsy sieciowe',
         restartNotice: 'Zmiany sieciowe zostaly zapisane, ale wymagaja restartu.',
         mode: 'Tryb', gateway: 'Brama', subnet: 'Maska', wifiStaPass: 'WiFi STA haslo',
@@ -500,13 +529,19 @@
         dsRom: 'ROM DS18B20', intervalMs: 'Interwal ms', tempUnit: 'Jedn. temp.',
         pressUnit: 'Jedn. cisn.', resolution: 'Rozdzielczosc', tempOffset: 'Offset temp. C',
         humOffset: 'Offset wilg. %', pressOffset: 'Offset cisn. hPa', scanAddress: 'Skanuj adres',
-        high: 'wysoka', medium: 'srednia', low: 'niska', standard: 'standard'
+        high: 'wysoka', medium: 'srednia', low: 'niska', standard: 'standard',
+        systemTools: 'System', backupRestore: 'Backup / restore konfiguracji', exportConfig: 'Eksport JSON',
+        importConfig: 'Import JSON', otaUpdate: 'Aktualizacja firmware OTA', uploadFirmware: 'Wgraj firmware',
+        configImported: 'Konfiguracja zaimportowana.', chooseConfig: 'Wybierz plik JSON konfiguracji.',
+        invalidConfig: 'Niepoprawny plik konfiguracji.', chooseFirmware: 'Wybierz plik firmware .bin.',
+        otaUploading: 'Wgrywanie firmware', otaDone: 'Firmware wgrany. Zrestartuj urzadzenie.',
+        otaFailed: 'Aktualizacja OTA nie powiodla sie.'
       },
       en: {
         loading: 'loading...', save: 'Save', restart: 'Restart', refresh: 'Refresh',
         add: 'Add', clear: 'Clear', pause: 'Pause', resume: 'Resume', delete: 'Delete',
         yes: 'Yes', no: 'No', static: 'Static', enabled: 'Enabled', disabled: 'Disabled',
-        tabStatus: 'Status', tabNetwork: 'Network', tabSensors: 'Sensors',
+        tabStatus: 'Status', tabNetwork: 'Network', tabSensors: 'Sensors', tabSystem: 'System',
         runtimeStatus: 'Runtime status', sensors: 'Sensors', networkInterfaces: 'Network interfaces',
         restartNotice: 'Network changes were saved, but require a restart.',
         mode: 'Mode', gateway: 'Gateway', subnet: 'Subnet', wifiStaPass: 'WiFi STA password',
@@ -531,7 +566,13 @@
         dsRom: 'DS18B20 ROM', intervalMs: 'Interval ms', tempUnit: 'Temp unit',
         pressUnit: 'Pressure unit', resolution: 'Resolution', tempOffset: 'Temp offset C',
         humOffset: 'Humidity offset %', pressOffset: 'Pressure offset hPa', scanAddress: 'Scan address',
-        high: 'high', medium: 'medium', low: 'low', standard: 'standard'
+        high: 'high', medium: 'medium', low: 'low', standard: 'standard',
+        systemTools: 'System', backupRestore: 'Configuration backup / restore', exportConfig: 'Export JSON',
+        importConfig: 'Import JSON', otaUpdate: 'Firmware OTA update', uploadFirmware: 'Upload firmware',
+        configImported: 'Configuration imported.', chooseConfig: 'Choose a configuration JSON file.',
+        invalidConfig: 'Invalid configuration file.', chooseFirmware: 'Choose a firmware .bin file.',
+        otaUploading: 'Uploading firmware', otaDone: 'Firmware uploaded. Restart the device.',
+        otaFailed: 'OTA update failed.'
       }
     };
     const ids = ['ui_lang','host','net_mode','dhcp','ip','gateway','subnet','dns','sta_ssid','sta_pass','ap_ssid','ap_pass','espnow_enabled','espnow_channel','espnow_peer','espnow_rx_topic','espnow_tx_topic','mqtt_mode','mqtt_host','mqtt_port','mqtt_user','mqtt_pass','base_topic','broker_port','broker_user','broker_pass'];
@@ -608,9 +649,12 @@
     async function loadStatus() {
       const s = await (await fetch('/api/status')).json();
       $('fw').textContent = `${s.fw} ${s.version}`;
-      const order = ['ip', 'eth', 'wifi', 'espnow', 'mqtt', 'uptime_s', 'free_heap'];
-      $('sideStatus').innerHTML = order.map(k => `<div class="status-row"><span>${k}</span><b><i class="dot ${statusDot(s[k])}"></i>${s[k]}</b></div>`).join('');
-      $('metrics').innerHTML = order.map(k => `<div class="metric"><span class="label">${k}</span><b>${s[k]}</b></div>`).join('');
+      const order = ['ip', 'eth', 'wifi', 'espnow', 'mqtt', 'ota_running', 'ota_next', 'uptime_s', 'free_heap'];
+      $('sideStatus').innerHTML = order.map(k => {
+        const value = s[k] == null ? '-' : s[k];
+        return `<div class="status-row"><span>${k}</span><b><i class="dot ${statusDot(value)}"></i>${value}</b></div>`;
+      }).join('');
+      $('metrics').innerHTML = order.map(k => `<div class="metric"><span class="label">${k}</span><b>${s[k] == null ? '-' : s[k]}</b></div>`).join('');
       $('restartBtn').classList.toggle('hidden', !s.restart_required);
       $('restartNotice').classList.toggle('show', !!s.restart_required);
     }
@@ -895,6 +939,77 @@
       toast(t('explorerCleared'));
     }
 
+    function downloadConfig() {
+      window.location.href = '/api/config/export';
+    }
+
+    async function importConfigFile() {
+      const file = $('configFile').files[0];
+      if (!file) {
+        toast(t('chooseConfig'));
+        return;
+      }
+      let text = '';
+      try {
+        text = await file.text();
+        JSON.parse(text);
+      } catch (e) {
+        toast(t('invalidConfig'));
+        return;
+      }
+      const res = await (await fetch('/api/config/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: text
+      })).json();
+      if (!res.ok) {
+        toast(t('invalidConfig'));
+        return;
+      }
+      toast(res.restart_required ? t('savedRestart') : t('configImported'));
+      await loadAll();
+      await loadMessages();
+    }
+
+    function uploadFirmware() {
+      const file = $('firmwareFile').files[0];
+      if (!file) {
+        toast(t('chooseFirmware'));
+        return;
+      }
+      const xhr = new XMLHttpRequest();
+      $('otaProgress').textContent = `${t('otaUploading')} 0%`;
+      xhr.upload.onprogress = event => {
+        if (event.lengthComputable) {
+          $('otaProgress').textContent = `${t('otaUploading')} ${Math.round(event.loaded * 100 / event.total)}%`;
+        }
+      };
+      xhr.onload = () => {
+        let ok = xhr.status >= 200 && xhr.status < 300;
+        try {
+          const data = JSON.parse(xhr.responseText || '{}');
+          ok = ok && data.ok;
+        } catch (e) {
+          ok = false;
+        }
+        if (ok) {
+          $('otaProgress').textContent = '100%';
+          $('restartBtn').classList.remove('hidden');
+          toast(t('otaDone'));
+        } else {
+          $('otaProgress').textContent = t('otaFailed');
+          toast(t('otaFailed'));
+        }
+      };
+      xhr.onerror = () => {
+        $('otaProgress').textContent = t('otaFailed');
+        toast(t('otaFailed'));
+      };
+      xhr.open('POST', '/api/ota');
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.send(file);
+    }
+
     async function loadAll() {
       await loadCfg();
       await loadStatus();
@@ -905,6 +1020,7 @@
     $('refreshBtn').addEventListener('click', loadAll);
     $('restartBtn').addEventListener('click', restartDevice);
     $('mqtt_mode').addEventListener('change', updateMqttVisibility);
+    $('configFile').addEventListener('change', importConfigFile);
     $('ui_lang').addEventListener('change', () => {
       cfg.ui_lang = Number($('ui_lang').value || 0);
       applyLanguage();
